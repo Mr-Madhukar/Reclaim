@@ -58,7 +58,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
     <div className="space-y-4">
       {/* Desktop Table View */}
       <div className="hidden md:block glass-card rounded-3xl border-cream-300 dark:border-surface-750 overflow-hidden shadow-lg">
-        <div className="overflow-x-auto">
+        <div tabIndex={0} role="region" aria-label="Recovery Cases Table" className="overflow-x-auto focus:outline-none focus:ring-1 focus:ring-brand-500">
           <table className="w-full text-left text-xs">
             <thead className="bg-cream-300/40 dark:bg-surface-850/80 text-cream-700 dark:text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-cream-300 dark:border-surface-750">
               <tr>

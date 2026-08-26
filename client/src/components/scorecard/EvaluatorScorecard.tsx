@@ -151,7 +151,7 @@ export const EvaluatorScorecard: React.FC = () => {
           Loss Lane Benchmark Comparison (vs Industry Baselines)
         </h3>
 
-        <div className="overflow-x-auto">
+        <div tabIndex={0} role="region" aria-label="Loss Lane Benchmark Comparison Table" className="overflow-x-auto focus:outline-none focus:ring-1 focus:ring-brand-500">
           <table className="w-full text-left text-xs font-mono">
             <thead className="bg-cream-300/40 dark:bg-surface-850 text-cream-700 dark:text-slate-400 text-[11px] uppercase tracking-wider border-b border-cream-300 dark:border-surface-750">
               <tr>

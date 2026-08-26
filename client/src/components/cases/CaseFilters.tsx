@@ -29,6 +29,7 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({ filters, onChange, onR
         <div className="flex items-center space-x-1">
           <Filter className="h-3.5 w-3.5 text-brand-500" />
           <select
+            aria-label="Filter cases by recovery lane"
             value={filters.lane || 'ALL'}
             onChange={(e) => onChange({ ...filters, lane: e.target.value as Lane | 'ALL', page: 1 })}
             className="px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs text-cream-900 dark:text-slate-200 focus:outline-none focus:border-brand-500"
@@ -42,6 +43,7 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({ filters, onChange, onR
 
         {/* Status Filter */}
         <select
+          aria-label="Filter cases by status"
           value={filters.status || 'ALL'}
           onChange={(e) => onChange({ ...filters, status: e.target.value as CaseStatus | 'ALL', page: 1 })}
           className="px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs text-cream-900 dark:text-slate-200 focus:outline-none focus:border-brand-500"

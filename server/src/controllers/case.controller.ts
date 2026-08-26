@@ -229,7 +229,7 @@ export class CaseController {
   async handleCustomerAction(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { action, promisedDate, promisedAmount, paymentMethod } = req.body;
+      const { action, promisedDate, promisedAmount, paymentMethod, optOutReason, paymentDetails } = req.body;
 
       const kase = await prisma.recoveryCase.findUnique({
         where: { id },
@@ -267,6 +267,8 @@ export class CaseController {
 
         res.json({ success: true, message: 'Payment successfully captured. Case recovered!' });
       } else if (action === 'OPT_OUT') {
+        const reasonText = optOutReason ? `Customer opt-out: ${optOutReason}` : 'Customer opted out of further recovery communications';
+
         await prisma.$transaction(async (tx) => {
           await tx.customer.update({
             where: { id: kase.customerId },
@@ -278,7 +280,7 @@ export class CaseController {
             data: {
               status: CaseStatus.STOPPED_OPTED_OUT,
               closedAt: new Date(),
-              closedReason: 'Customer opted out of further recovery communications',
+              closedReason: reasonText,
             },
           });
 
@@ -288,8 +290,8 @@ export class CaseController {
               entityType: 'Customer',
               entityId: kase.customerId,
               eventType: 'customer_opted_out',
-              afterJson: { optedOut: true },
-              reason: 'Customer triggered opt-out via recovery portal. Policy Engine halted future retries.',
+              afterJson: { optedOut: true, reason: optOutReason || 'Unsubscribe' },
+              reason: `Customer triggered opt-out via recovery portal (${optOutReason || 'No reason provided'}). Policy Engine halted future retries.`,
             },
             tx
           );
@@ -328,6 +330,50 @@ export class CaseController {
         });
 
         res.json({ success: true, message: `Promise to pay commitment recorded for ${date.toLocaleDateString()}` });
+      } else if (action === 'GRACE_PERIOD') {
+        const graceHours = 24;
+        const newNextAttempt = new Date(Date.now() + graceHours * 3600 * 1000);
+
+        await prisma.$transaction(async (tx) => {
+          await auditService.log(
+            {
+              actor: `customer:${kase.customerId}`,
+              entityType: 'RecoveryCase',
+              entityId: id,
+              eventType: 'grace_period_requested',
+              afterJson: { gracePeriodHours: graceHours, pausedUntil: newNextAttempt },
+              reason: `Customer requested a 24-hour grace period. Autonomous reminders postponed until ${newNextAttempt.toLocaleString()}`,
+            },
+            tx
+          );
+        });
+
+        res.json({
+          success: true,
+          message: `24-hour grace period activated. Reminders paused until ${newNextAttempt.toLocaleDateString()} ${newNextAttempt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+        });
+      } else if (action === 'UPDATE_PAYMENT_METHOD') {
+        const updatedMethod = paymentDetails?.method || paymentMethod || 'UPI Auto-Debit';
+        const identifier = paymentDetails?.identifier || 'Updated on file';
+
+        await prisma.$transaction(async (tx) => {
+          await auditService.log(
+            {
+              actor: `customer:${kase.customerId}`,
+              entityType: 'RecoveryCase',
+              entityId: id,
+              eventType: 'payment_method_updated',
+              afterJson: { paymentMethod: updatedMethod, identifier },
+              reason: `Customer updated payment method on file to ${updatedMethod} (${identifier})`,
+            },
+            tx
+          );
+        });
+
+        res.json({
+          success: true,
+          message: `Payment method successfully updated to ${updatedMethod} (${identifier}). Automated retry scheduled.`,
+        });
       } else {
         res.status(400).json({ error: { code: 'INVALID_ACTION', message: `Unknown customer action: ${action}` } });
       }

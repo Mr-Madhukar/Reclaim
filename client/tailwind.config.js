@@ -14,12 +14,12 @@ export default {
           200: '#fed7aa',
           300: '#fdba74',
           400: '#fb923c',
-          500: '#ff7828', // Core Radiant Orange
-          600: '#ea580c',
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
-          950: '#431407',
+          500: '#c2410c', // WCAG AA Compliant High-Contrast Orange (5.2:1 against white)
+          600: '#9a3412',
+          700: '#7c2d12',
+          800: '#6c2710',
+          900: '#431407',
+          950: '#2a0c04',
         },
         cream: {
           50: '#fffdfa',

@@ -88,9 +88,9 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="pt-6 border-t border-cream-300/60 dark:border-surface-750/60 flex flex-col sm:flex-row items-center justify-between text-xs text-cream-600 dark:text-slate-500">
+        <div className="pt-6 border-t border-cream-300/60 dark:border-surface-750/60 flex flex-col sm:flex-row items-center justify-between text-xs text-cream-700 dark:text-slate-400">
           <p>© 2026 Reclaim AI — Built for Razorpay AI Buildathon Track 03.</p>
-          <p className="mt-2 sm:mt-0 font-mono text-[11px]">
+          <p className="mt-2 sm:mt-0 font-mono text-[11px] text-cream-700 dark:text-slate-400">
             Node.js · PostgreSQL · BullMQ · Gemini 2.0 · React + Tailwind
           </p>
         </div>

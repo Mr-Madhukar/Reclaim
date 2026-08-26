@@ -9,11 +9,19 @@ import {
   AlertCircle,
   Sparkles,
   ArrowRight,
+  Clock,
+  RefreshCw,
+  Languages,
+  Wifi,
+  Battery,
+  Signal,
+  Check,
 } from 'lucide-react';
 import { useCases } from '../../hooks/useCases';
 import { api } from '../../lib/api';
 import { formatINR, formatRootCause } from '../../lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { CustomerRecoveryModal } from './CustomerRecoveryModal';
 
 export const CustomerRecoveryView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -26,12 +34,17 @@ export const CustomerRecoveryView: React.FC = () => {
   );
   const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [copyLanguage, setCopyLanguage] = useState<'en' | 'hinglish'>('en');
+  const [paymentModalOpen, setPaymentModalOpen] = useState<boolean>(false);
+  const [optOutModalOpen, setOptOutModalOpen] = useState<boolean>(false);
+  const [optOutReason, setOptOutReason] = useState<string>('Already paid through another channel');
+  const [newUpiId, setNewUpiId] = useState<string>('user@okhdfcbank');
 
   const activeCase = openCases.find((c) => c.id === selectedCaseId) || openCases[0];
 
   const handleCustomerAction = async (
-    action: 'PAY_SUCCESS' | 'OPT_OUT' | 'PROMISE_TO_PAY' | 'ALT_PAYMENT',
-    paymentMethod?: string
+    action: 'PAY_SUCCESS' | 'OPT_OUT' | 'PROMISE_TO_PAY' | 'ALT_PAYMENT' | 'GRACE_PERIOD' | 'UPDATE_PAYMENT_METHOD',
+    options?: { paymentMethod?: string; optOutReason?: string; paymentDetails?: { method: string; identifier: string } }
   ) => {
     if (!activeCase) return;
     setIsProcessing(true);
@@ -39,9 +52,11 @@ export const CustomerRecoveryView: React.FC = () => {
     try {
       const res = await api.cases.customerAction(activeCase.id, {
         action: action === 'ALT_PAYMENT' ? 'PAY_SUCCESS' : action,
-        paymentMethod: paymentMethod || 'Card',
+        paymentMethod: options?.paymentMethod || 'Razorpay Direct',
         promisedDate,
         promisedAmount: activeCase.amount,
+        optOutReason: options?.optOutReason,
+        paymentDetails: options?.paymentDetails,
       });
 
       setFeedback({ success: true, message: res.message });
@@ -59,8 +74,13 @@ export const CustomerRecoveryView: React.FC = () => {
     }
   };
 
+  const handleModalPaymentSuccess = async (paymentMethod: string) => {
+    await handleCustomerAction('PAY_SUCCESS', { paymentMethod });
+  };
+
   return (
     <div className="glass-card rounded-3xl p-6 sm:p-8 border-cream-300 dark:border-surface-750 shadow-xl space-y-6">
+      {/* Header & Case Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cream-300 dark:border-surface-750">
         <div>
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
@@ -68,10 +88,10 @@ export const CustomerRecoveryView: React.FC = () => {
             <span>End-Customer Recovery Portal</span>
           </div>
           <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
-            Simulate Customer Payment &amp; Response Journey
+            Customer Self-Service Payment &amp; Response Portal
           </h3>
           <p className="text-xs text-cream-700 dark:text-slate-400 mt-1">
-            Experience how end-customers receive personalized Gemini copy, pay via alternate rails, or opt out.
+            Experience how customers receive AI recovery nudges, pay via Razorpay rails, request grace periods, or opt out.
           </p>
         </div>
 
@@ -79,11 +99,14 @@ export const CustomerRecoveryView: React.FC = () => {
         {openCases.length > 0 && (
           <div className="flex items-center space-x-2">
             <span className="text-xs font-semibold text-cream-700 dark:text-slate-400 whitespace-nowrap">
-              Select Active Case:
+              Active Case:
             </span>
             <select
               value={selectedCaseId || (activeCase ? activeCase.id : '')}
-              onChange={(e) => setSelectedCaseId(e.target.value)}
+              onChange={(e) => {
+                setSelectedCaseId(e.target.value);
+                setFeedback(null);
+              }}
               className="px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 max-w-xs truncate"
             >
               {openCases.map((c) => (
@@ -97,102 +120,169 @@ export const CustomerRecoveryView: React.FC = () => {
       </div>
 
       {!activeCase ? (
-        <div className="text-center py-12 space-y-3">
-          <p className="text-sm text-cream-700 dark:text-slate-400">
-            No open recovery cases found. Trigger a webhook or batch run first to populate active cases.
+        <div className="text-center py-16 space-y-3">
+          <div className="h-12 w-12 rounded-2xl bg-cream-200 dark:bg-surface-800 mx-auto flex items-center justify-center text-cream-600 dark:text-slate-400">
+            <Smartphone className="h-6 w-6" />
+          </div>
+          <h4 className="text-sm font-bold text-slate-900 dark:text-white">No Open Recovery Cases</h4>
+          <p className="text-xs text-cream-700 dark:text-slate-400 max-w-md mx-auto">
+            All customer cases are currently recovered or closed. Trigger a simulated webhook event in the Webhook Simulator tab to generate an active case.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Simulated Mobile Phone Mockup */}
-          <div className="lg:col-span-6 flex justify-center">
-            <div className="w-full max-w-sm rounded-[2.5rem] bg-cream-900 dark:bg-surface-950 p-4 shadow-2xl border-4 border-cream-300 dark:border-surface-700">
-              {/* Phone Speaker & Notch */}
-              <div className="h-4 w-28 bg-cream-800 dark:bg-surface-800 rounded-full mx-auto mb-4"></div>
+          <div className="lg:col-span-6 flex flex-col items-center">
+            {/* Bilingual Language Selector */}
+            <div className="mb-3 flex items-center space-x-2 bg-cream-200 dark:bg-surface-850 p-1 rounded-xl border border-cream-300 dark:border-surface-750">
+              <Languages className="h-3.5 w-3.5 text-brand-500 ml-1.5" />
+              <button
+                onClick={() => setCopyLanguage('en')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  copyLanguage === 'en'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : 'text-cream-700 dark:text-slate-400 hover:text-brand-500'
+                }`}
+              >
+                English (Default)
+              </button>
+              <button
+                onClick={() => setCopyLanguage('hinglish')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  copyLanguage === 'hinglish'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : 'text-cream-700 dark:text-slate-400 hover:text-brand-500'
+                }`}
+              >
+                Hinglish (Localized)
+              </button>
+            </div>
 
-              {/* Screen Content */}
-              <div className="bg-cream-100 dark:bg-surface-900 rounded-[2rem] p-5 space-y-4 text-xs shadow-inner">
-                {/* Brand Header inside phone */}
-                <div className="flex items-center justify-between pb-3 border-b border-cream-300 dark:border-surface-750">
-                  <div className="font-extrabold text-slate-900 dark:text-white">
-                    Razorpay Secure Pay
-                  </div>
-                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                    100% SECURE
-                  </span>
+            {/* Mobile Device Frame */}
+            <div className="w-full max-w-sm rounded-[2.75rem] bg-slate-900 dark:bg-surface-950 p-4 shadow-2xl border-4 border-slate-700 dark:border-surface-700 ring-1 ring-slate-900/50">
+              {/* Phone Speaker & Top Sensor Notch */}
+              <div className="flex items-center justify-between px-6 pt-1 pb-3 text-slate-400 text-[10px] font-mono">
+                <span>09:41</span>
+                <div className="h-4 w-24 bg-slate-800 rounded-full"></div>
+                <div className="flex items-center space-x-1">
+                  <Signal className="h-3 w-3" />
+                  <Wifi className="h-3 w-3" />
+                  <Battery className="h-3 w-3 text-emerald-400" />
                 </div>
+              </div>
 
-                {/* Gemini Personalized Copy Box */}
-                <div className="p-3.5 rounded-2xl bg-brand-500/10 border border-brand-500/20 space-y-2">
-                  <div className="flex items-center space-x-1.5 text-[10px] font-mono font-bold text-brand-600 dark:text-brand-400 uppercase">
-                    <Sparkles className="h-3 w-3" />
-                    <span>Personalized Recovery Nudge</span>
+              {/* Phone Screen Canvas */}
+              <div className="bg-cream-100 dark:bg-surface-900 rounded-[2rem] p-5 space-y-4 text-xs shadow-inner min-h-[460px] flex flex-col justify-between">
+                <div className="space-y-4">
+                  {/* Brand Header inside phone */}
+                  <div className="flex items-center justify-between pb-3 border-b border-cream-300 dark:border-surface-750">
+                    <div className="flex items-center space-x-1.5">
+                      <div className="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-[11px]">
+                        R
+                      </div>
+                      <span className="font-extrabold text-slate-900 dark:text-white text-xs">
+                        Razorpay Secure Pay
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                      100% VERIFIED
+                    </span>
                   </div>
-                  <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
-                    &ldquo;Hi {activeCase.customer.name}, your payment of{' '}
-                    <strong>{formatINR(activeCase.amount)}</strong> could not be completed due to a temporary{' '}
-                    <strong>{formatRootCause(activeCase.rootCause)}</strong>. We have saved your transaction so you can finish safely in one step.&rdquo;
-                  </p>
-                </div>
 
-                {/* Amount Due Card */}
-                <div className="p-4 rounded-2xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-center space-y-1">
-                  <span className="text-[11px] text-cream-600 dark:text-slate-400 uppercase font-mono">
-                    Total Amount Due
-                  </span>
-                  <div className="text-2xl font-extrabold font-mono text-slate-900 dark:text-white">
-                    {formatINR(activeCase.amount)}
+                  {/* Gemini Personalized Recovery Copy Box */}
+                  <div className="p-3.5 rounded-2xl bg-brand-500/10 border border-brand-500/20 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-mono font-bold text-brand-600 dark:text-brand-400 uppercase">
+                      <div className="flex items-center space-x-1">
+                        <Sparkles className="h-3 w-3" />
+                        <span>AI Adaptive Recovery Copy</span>
+                      </div>
+                      <span className="text-[9px] lowercase bg-brand-500/15 px-1.5 py-0.5 rounded">
+                        {copyLanguage === 'en' ? 'en-IN' : 'hi-Latn'}
+                      </span>
+                    </div>
+
+                    {copyLanguage === 'en' ? (
+                      <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
+                        &ldquo;Hi {activeCase.customer.name}, your payment of{' '}
+                        <strong>{formatINR(activeCase.amount)}</strong> could not be completed due to a temporary{' '}
+                        <strong className="text-brand-600 dark:text-brand-400">
+                          {formatRootCause(activeCase.rootCause)}
+                        </strong>
+                        . We have safely saved your cart so you can finish seamlessly in one click.&rdquo;
+                      </p>
+                    ) : (
+                      <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
+                        &ldquo;Namaste {activeCase.customer.name}, aapka{' '}
+                        <strong>{formatINR(activeCase.amount)}</strong> ka payment temporary technical issue (
+                        <strong className="text-brand-600 dark:text-brand-400">
+                          {formatRootCause(activeCase.rootCause)}
+                        </strong>
+                        ) ki wajah se ruka hai. Humne aapka transaction save kar liya hai taaki aap UPI ya Card se turant complete kar sakein.&rdquo;
+                      </p>
+                    )}
                   </div>
-                  <span className="text-[10px] text-cream-600 dark:text-slate-400 block font-mono">
-                    Ref: {activeCase.sourceRefId.slice(0, 16)}...
-                  </span>
+
+                  {/* Amount Due Card */}
+                  <div className="p-4 rounded-2xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-center space-y-1">
+                    <span className="text-[10px] text-cream-600 dark:text-slate-400 uppercase font-mono tracking-wider">
+                      Pending Amount
+                    </span>
+                    <div className="text-2xl font-extrabold font-mono text-slate-900 dark:text-white">
+                      {formatINR(activeCase.amount)}
+                    </div>
+                    <div className="flex items-center justify-center space-x-2 text-[10px] text-cream-600 dark:text-slate-400 font-mono">
+                      <span>Ref: {activeCase.sourceRefId.slice(0, 14)}...</span>
+                      <span>•</span>
+                      <span className="capitalize">{activeCase.lane.toLowerCase()}</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Simulated Payment Action Buttons */}
                 <div className="space-y-2 pt-2">
                   <button
-                    onClick={() => handleCustomerAction('PAY_SUCCESS', 'Razorpay Card')}
+                    onClick={() => setPaymentModalOpen(true)}
                     disabled={isProcessing}
-                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all"
+                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 hover:scale-102 transition-all cursor-pointer"
                   >
                     <CreditCard className="h-4 w-4" />
-                    <span>Pay {formatINR(activeCase.amount)} with Card</span>
+                    <span>Pay {formatINR(activeCase.amount)} via Razorpay</span>
                   </button>
 
                   <button
-                    onClick={() => handleCustomerAction('ALT_PAYMENT', 'UPI Instant')}
+                    onClick={() => setPaymentModalOpen(true)}
                     disabled={isProcessing}
-                    className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all"
+                    className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
                   >
                     <QrCode className="h-4 w-4" />
-                    <span>Switch to Instant UPI (Alt Rail)</span>
+                    <span>Instant UPI / QR Code Rail</span>
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Customer Alternate Interactions */}
-          <div className="lg:col-span-6 space-y-6">
+          {/* Right Column: Customer Alternate Self-Service Options */}
+          <div className="lg:col-span-6 space-y-5">
             <div>
-              <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-2">
-                Simulate Alternate Customer Responses
+              <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-1">
+                Simulate Customer Self-Service Actions
               </h4>
               <p className="text-xs text-cream-700 dark:text-slate-400">
-                Test how the agent responds to promise-to-pay commitments and customer opt-out requests.
+                Test how the autonomous agent &amp; policy engine adapt when customers choose flexible resolution options.
               </p>
             </div>
 
-            {/* Option 1: Promise to Pay Date Selector */}
+            {/* Option 1: Promise to Pay Commitment */}
             <div className="glass-card rounded-2xl p-5 border-cream-300 dark:border-surface-750 space-y-3">
-              <div className="flex items-center space-x-2 text-xs font-bold text-amber-700 dark:text-amber-400 uppercase font-mono">
+              <div className="flex items-center space-x-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase font-mono">
                 <Calendar className="h-4 w-4" />
-                <span>Option A: Commit &apos;Promise to Pay&apos; Date</span>
+                <span>1. Commit Promise-to-Pay Date</span>
               </div>
               <p className="text-xs text-cream-700 dark:text-slate-300 leading-relaxed">
-                Customer promises to clear the dues by a specific future date. The Policy Engine pauses all reminders until the commitment date.
+                Customer promises to clear the dues by a future date. The Policy Engine freezes automated recovery nudges until the commitment date.
               </p>
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <input
                   type="date"
                   value={promisedDate}
@@ -202,7 +292,7 @@ export const CustomerRecoveryView: React.FC = () => {
                 <button
                   onClick={() => handleCustomerAction('PROMISE_TO_PAY')}
                   disabled={isProcessing}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs transition-colors"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs"
                 >
                   <span>Submit Promise</span>
                   <ArrowRight className="h-3 w-3" />
@@ -210,45 +300,180 @@ export const CustomerRecoveryView: React.FC = () => {
               </div>
             </div>
 
-            {/* Option 2: Opt-Out Trigger */}
+            {/* Option 2: Request 24h Grace Period (Snooze) */}
+            <div className="glass-card rounded-2xl p-5 border-cream-300 dark:border-surface-750 space-y-3">
+              <div className="flex items-center space-x-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase font-mono">
+                <Clock className="h-4 w-4" />
+                <span>2. Request 24-Hour Grace Period (Snooze)</span>
+              </div>
+              <p className="text-xs text-cream-700 dark:text-slate-300 leading-relaxed">
+                Customer requests a 24-hour extension. Reclaim pauses retry attempts for 24 hours and updates next attempt schedule.
+              </p>
+              <button
+                onClick={() => handleCustomerAction('GRACE_PERIOD')}
+                disabled={isProcessing}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                <span>Activate 24h Grace Period</span>
+              </button>
+            </div>
+
+            {/* Option 3: Update Payment Rail / Handle on File */}
+            <div className="glass-card rounded-2xl p-5 border-cream-300 dark:border-surface-750 space-y-3">
+              <div className="flex items-center space-x-2 text-xs font-bold text-teal-600 dark:text-teal-400 uppercase font-mono">
+                <RefreshCw className="h-4 w-4" />
+                <span>3. Update Payment Rail on File</span>
+              </div>
+              <p className="text-xs text-cream-700 dark:text-slate-300 leading-relaxed">
+                Customer updates their default UPI handle or card on file for recurring subscriptions.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  value={newUpiId}
+                  onChange={(e) => setNewUpiId(e.target.value)}
+                  placeholder="newhandle@upi"
+                  className="px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white"
+                />
+                <button
+                  onClick={() =>
+                    handleCustomerAction('UPDATE_PAYMENT_METHOD', {
+                      paymentDetails: { method: 'UPI Auto-Debit', identifier: newUpiId },
+                    })
+                  }
+                  disabled={isProcessing || !newUpiId}
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Update Rail</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Option 4: Opt-Out / Unsubscribe Dialog */}
             <div className="glass-card rounded-2xl p-5 border-rose-500/30 space-y-3">
               <div className="flex items-center space-x-2 text-xs font-bold text-rose-600 dark:text-rose-400 uppercase font-mono">
                 <Ban className="h-4 w-4" />
-                <span>Option B: Customer Requests Opt-Out (Do Not Contact)</span>
+                <span>4. Customer Opt-Out / Stop Outreach</span>
               </div>
               <p className="text-xs text-cream-700 dark:text-slate-300 leading-relaxed">
-                Customer clicks &ldquo;Unsubscribe / Stop Reminders&rdquo;. Sets customer `optedOut = true` and permanently closes case under deterministic stopping rules.
+                Customer clicks &ldquo;Unsubscribe / Stop Reminders&rdquo;. Immediately closes the case under deterministic stopping rules and prevents further contact.
               </p>
               <button
-                onClick={() => handleCustomerAction('OPT_OUT')}
+                onClick={() => setOptOutModalOpen(true)}
                 disabled={isProcessing}
                 className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs transition-colors"
               >
                 <Ban className="h-3.5 w-3.5" />
-                <span>Simulate Opt-Out Request</span>
+                <span>Simulate Opt-Out Request...</span>
               </button>
             </div>
 
-            {/* Feedback Alert */}
+            {/* Live Feedback Alert Banner */}
             {feedback && (
               <div
-                className={`p-4 rounded-2xl border text-xs font-mono flex items-start space-x-2 animate-slide-down ${
+                className={`p-4 rounded-2xl border text-xs font-mono flex items-start space-x-2.5 animate-slide-down shadow-md ${
                   feedback.success
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-300'
                 }`}
               >
                 {feedback.success ? (
-                  <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500 mt-0.5" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 shrink-0 text-rose-500 mt-0.5" />
                 )}
                 <div>
-                  <strong>Outcome: </strong>
-                  <span>{feedback.message}</span>
+                  <strong className="block text-[11px] uppercase tracking-wider">
+                    {feedback.success ? 'Action Recorded in Policy Engine' : 'Execution Notice'}
+                  </strong>
+                  <span className="mt-0.5 block leading-relaxed">{feedback.message}</span>
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* RAZORPAY PAYMENT SIMULATION MODAL */}
+      {activeCase && (
+        <CustomerRecoveryModal
+          isOpen={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          kase={activeCase}
+          onPaymentSuccess={handleModalPaymentSuccess}
+        />
+      )}
+
+      {/* OPT-OUT REASON MODAL */}
+      {optOutModalOpen && activeCase && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-cream-100 dark:bg-surface-900 border border-cream-300 dark:border-surface-700 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600 dark:text-rose-400">
+              <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+                <Ban className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Confirm Opt-Out Request
+                </h4>
+                <p className="text-xs text-cream-600 dark:text-slate-400">
+                  Deterministic Stopping Rule Enforcement
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-cream-700 dark:text-slate-300">
+              Select the reason why customer <strong>{activeCase.customer.name}</strong> is opting out:
+            </p>
+
+            <div className="space-y-2">
+              {[
+                'Already paid through another channel',
+                'Subscription cancelled or service no longer needed',
+                'Temporary financial difficulty (will pay later)',
+                'Do not contact / Requesting data privacy halt',
+              ].map((reason) => (
+                <label
+                  key={reason}
+                  onClick={() => setOptOutReason(reason)}
+                  className={`flex items-start space-x-2.5 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                    optOutReason === reason
+                      ? 'bg-rose-500/10 border-rose-500/40 text-slate-900 dark:text-white font-medium'
+                      : 'bg-cream-200 dark:bg-surface-850 border-cream-300 dark:border-surface-750 text-cream-700 dark:text-slate-400'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="optOutReason"
+                    checked={optOutReason === reason}
+                    onChange={() => setOptOutReason(reason)}
+                    className="mt-0.5 text-rose-500"
+                  />
+                  <span>{reason}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex space-x-3 pt-2">
+              <button
+                onClick={() => setOptOutModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setOptOutModalOpen(false);
+                  await handleCustomerAction('OPT_OUT', { optOutReason });
+                }}
+                disabled={isProcessing}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-colors"
+              >
+                Confirm Opt-Out
+              </button>
+            </div>
           </div>
         </div>
       )}

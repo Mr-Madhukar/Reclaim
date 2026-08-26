@@ -16,7 +16,9 @@ export type AuditEventType =
   | 'policy_config_updated'
   | 'customer_opted_out'
   | 'promise_to_pay_logged'
-  | 'promise_to_pay_resolved';
+  | 'promise_to_pay_resolved'
+  | 'grace_period_requested'
+  | 'payment_method_updated';
 
 export interface CreateAuditEntryInput {
   actor: AuditActor;

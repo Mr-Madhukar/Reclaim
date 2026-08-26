@@ -13,6 +13,8 @@ export default tseslint.config(
       '**/coverage/**',
       '**/.vite/**',
       '**/.cache/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
     ],
   },
   js.configs.recommended,

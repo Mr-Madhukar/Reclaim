@@ -42,7 +42,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({ logs, isLoading, o
 
   return (
     <div className="glass-card rounded-3xl border-cream-300 dark:border-surface-750 overflow-hidden shadow-lg">
-      <div className="overflow-x-auto">
+      <div tabIndex={0} role="region" aria-label="Audit Log Table" className="overflow-x-auto focus:outline-none focus:ring-1 focus:ring-brand-500">
         <table className="w-full text-left text-xs">
           <thead className="bg-cream-300/40 dark:bg-surface-850/80 text-cream-700 dark:text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-cream-300 dark:border-surface-750">
             <tr>

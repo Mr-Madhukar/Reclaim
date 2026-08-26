@@ -39,7 +39,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 // Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
+app.get(['/health', '/api/health'], (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'reclaim-backend',

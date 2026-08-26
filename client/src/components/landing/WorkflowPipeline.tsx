@@ -203,7 +203,12 @@ export const WorkflowPipeline: React.FC = () => {
                   VERIFIED RECEIPT
                 </span>
               </div>
-              <div className="p-4 rounded-2xl bg-surface-950 text-slate-200 font-mono text-xs overflow-x-auto border border-surface-750 shadow-inner">
+              <div
+                tabIndex={0}
+                role="region"
+                aria-label="Immutable Audit Log Payload Preview"
+                className="p-4 rounded-2xl bg-surface-950 text-slate-200 font-mono text-xs overflow-x-auto border border-surface-750 shadow-inner focus:outline-none focus:ring-1 focus:ring-brand-500"
+              >
                 <pre className="text-brand-400 leading-relaxed">
                   {current.receiptLog}
                 </pre>

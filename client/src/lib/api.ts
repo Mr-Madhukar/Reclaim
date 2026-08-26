@@ -91,7 +91,14 @@ export const api = {
     },
     customerAction: async (
       id: string,
-      payload: { action: 'PAY_SUCCESS' | 'OPT_OUT' | 'PROMISE_TO_PAY' | 'ALT_PAYMENT'; promisedDate?: string; promisedAmount?: number; paymentMethod?: string }
+      payload: {
+        action: 'PAY_SUCCESS' | 'OPT_OUT' | 'PROMISE_TO_PAY' | 'ALT_PAYMENT' | 'GRACE_PERIOD' | 'UPDATE_PAYMENT_METHOD';
+        promisedDate?: string;
+        promisedAmount?: number;
+        paymentMethod?: string;
+        optOutReason?: string;
+        paymentDetails?: { method: string; identifier: string };
+      }
     ): Promise<{ success: boolean; message: string }> => {
       const { data } = await apiClient.post<{ success: boolean; message: string }>(`/cases/${id}/customer-action`, payload);
       return data;
