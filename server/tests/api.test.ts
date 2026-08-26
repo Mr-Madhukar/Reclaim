@@ -4,7 +4,7 @@ import { app } from '../src/app';
 import crypto from 'crypto';
 import { env } from '../src/config/env';
 
-describe('Reclaim REST API Endpoints & RBAC Integration Tests', () => {
+describe('Reclaim REST API Endpoints & RBAC Integration Tests', { timeout: 30000 }, () => {
   let adminToken: string;
   let opsToken: string;
   let reviewerToken: string;

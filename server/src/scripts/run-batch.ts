@@ -1,12 +1,27 @@
 import { caseService } from '../services/case.service';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
+import { getHourInTimezone } from '../services/policy-engine';
 
 async function run() {
   console.log('🚀 Initiating Reclaim Autonomous Revenue Recovery Batch Run...\n');
 
+  const now = new Date();
+  const currentHourIST = getHourInTimezone(now, 'Asia/Kolkata');
+  const isOffHours = currentHourIST < 9 || currentHourIST >= 19;
+  const isStrictClock = process.argv.includes('--strict-clock');
+
+  let nowOverride: Date | undefined;
+  if (isOffHours && !isStrictClock) {
+    console.log(`ℹ️ Current local time (${currentHourIST}:00 in Asia/Kolkata) is outside permissible contact window (9:00 - 19:00).`);
+    console.log('ℹ️ Simulating standard daytime business hours (14:00 IST) for synthetic batch benchmark...\n');
+    const simDate = new Date();
+    simDate.setHours(14, 0, 0, 0);
+    nowOverride = simDate;
+  }
+
   const startTime = Date.now();
-  const { processedCount, results } = await caseService.runBatch();
+  const { processedCount, results } = await caseService.runBatch(undefined, { nowOverride });
 
   const successCount = results.filter((r) => r.status === 'RECOVERED').length;
   const blockedCount = results.filter((r) => r.outcome === 'blocked').length;

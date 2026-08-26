@@ -5,14 +5,17 @@ import { auditService } from './audit.service';
 import { policyEngine } from './policy-engine';
 import { diagnosisService } from './diagnosis.service';
 import { razorpayAdapter } from '../integrations/razorpay/razorpay.adapter';
-import { notificationAdapter } from '../integrations/notifications/notification.adapter';
+import { notificationAdapter, SendNotificationResult } from '../integrations/notifications/notification.adapter';
 import { BoundedActionType, MetricSummary } from '../types';
 
 export class CaseService {
   /**
    * Core autonomous workflow: Detect -> Diagnose -> Policy Gate -> Act -> Observe -> Stop
    */
-  async processCase(caseId: string): Promise<{
+  async processCase(
+    caseId: string,
+    options?: { nowOverride?: Date }
+  ): Promise<{
     caseId: string;
     actionType?: BoundedActionType;
     status: CaseStatus;
@@ -47,10 +50,26 @@ export class CaseService {
     const attemptNumber = totalPriorActions + 1;
     const priorActionTypes = recoveryCase.actions.map((a) => a.actionType);
 
+    // Retrieve failure code and raw reason from PaymentAttempt if PAYMENT lane
+    let failureCode: string | undefined;
+    let failureReasonRaw: string | undefined;
+    if (recoveryCase.lane === 'PAYMENT') {
+      const paymentAttempt = await prisma.paymentAttempt.findUnique({
+        where: { id: recoveryCase.sourceRefId },
+        select: { failureCode: true, failureReasonRaw: true },
+      });
+      if (paymentAttempt) {
+        failureCode = paymentAttempt.failureCode || undefined;
+        failureReasonRaw = paymentAttempt.failureReasonRaw || undefined;
+      }
+    }
+
     // STEP 1: Diagnose Root Cause & Recommend Bounded Action
     const diagnosis = await diagnosisService.diagnose({
       lane: recoveryCase.lane,
       sourceRefId: recoveryCase.sourceRefId,
+      failureCode,
+      failureReasonRaw,
       customerName: recoveryCase.customer.name,
       amount: Number(recoveryCase.amount),
       attemptNumber,
@@ -59,25 +78,28 @@ export class CaseService {
 
     // Update case rootCause if newly diagnosed
     if (!recoveryCase.rootCause || recoveryCase.rootCause !== diagnosis.rootCause) {
-      await prisma.$transaction(async (tx) => {
-        await tx.recoveryCase.update({
-          where: { id: caseId },
-          data: { rootCause: diagnosis.rootCause },
-        });
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.recoveryCase.update({
+            where: { id: caseId },
+            data: { rootCause: diagnosis.rootCause },
+          });
 
-        await auditService.log(
-          {
-            actor: 'agent',
-            entityType: 'RecoveryCase',
-            entityId: caseId,
-            eventType: 'root_cause_diagnosed',
-            beforeJson: { rootCause: recoveryCase.rootCause },
-            afterJson: { rootCause: diagnosis.rootCause, explanation: diagnosis.explanation, modelUsed: diagnosis.modelUsed },
-            reason: `Root cause diagnosed as '${diagnosis.rootCause}' via ${diagnosis.modelUsed} (${Math.round(diagnosis.confidence * 100)}% confidence).`,
-          },
-          tx
-        );
-      });
+          await auditService.log(
+            {
+              actor: 'agent',
+              entityType: 'RecoveryCase',
+              entityId: caseId,
+              eventType: 'root_cause_diagnosed',
+              beforeJson: { rootCause: recoveryCase.rootCause },
+              afterJson: { rootCause: diagnosis.rootCause, explanation: diagnosis.explanation, modelUsed: diagnosis.modelUsed },
+              reason: `Root cause diagnosed as '${diagnosis.rootCause}' via ${diagnosis.modelUsed} (${Math.round(diagnosis.confidence * 100)}% confidence).`,
+            },
+            tx
+          );
+        },
+        { timeout: 15000 }
+      );
     }
 
     const proposedAction = diagnosis.recommendedAction;
@@ -88,6 +110,7 @@ export class CaseService {
       caseId,
       actionType: proposedAction,
       proposedIncentiveAmount: proposedIncentive,
+      nowOverride: options?.nowOverride,
     });
 
     // Handle Policy Blocked Path
@@ -101,31 +124,34 @@ export class CaseService {
         resultingStatus = 'STOPPED_OPTED_OUT';
       }
 
-      await prisma.$transaction(async (tx) => {
-        if (resultingStatus !== recoveryCase.status) {
-          await tx.recoveryCase.update({
-            where: { id: caseId },
-            data: {
-              status: resultingStatus,
-              closedAt: new Date(),
-              closedReason: stopReason,
-            },
-          });
-        }
+      await prisma.$transaction(
+        async (tx) => {
+          if (resultingStatus !== recoveryCase.status) {
+            await tx.recoveryCase.update({
+              where: { id: caseId },
+              data: {
+                status: resultingStatus,
+                closedAt: new Date(),
+                closedReason: stopReason,
+              },
+            });
+          }
 
-        await auditService.log(
-          {
-            actor: 'agent',
-            entityType: 'RecoveryCase',
-            entityId: caseId,
-            eventType: 'policy_blocked',
-            beforeJson: { status: recoveryCase.status, proposedAction },
-            afterJson: { status: resultingStatus, ruleTriggered: policyResult.ruleTriggered },
-            reason: `Policy Blocked: ${policyResult.reason}`,
-          },
-          tx
-        );
-      });
+          await auditService.log(
+            {
+              actor: 'agent',
+              entityType: 'RecoveryCase',
+              entityId: caseId,
+              eventType: 'policy_blocked',
+              beforeJson: { status: recoveryCase.status, proposedAction },
+              afterJson: { status: resultingStatus, ruleTriggered: policyResult.ruleTriggered },
+              reason: `Policy Blocked: ${policyResult.reason}`,
+            },
+            tx
+          );
+        },
+        { timeout: 15000 }
+      );
 
       return {
         caseId,
@@ -138,8 +164,8 @@ export class CaseService {
     }
 
     // STEP 3: Policy Passed -> Execute Bounded Action
-    let actionPayload: any = {};
-    let notificationResult: any = null;
+    let actionPayload: Record<string, unknown> = {};
+    let notificationResult: SendNotificationResult | null = null;
 
     if (proposedAction === 'send_retry_link') {
       const link = await razorpayAdapter.createPaymentLink({
@@ -233,75 +259,78 @@ export class CaseService {
       recoveryOutcome = 'confirmed';
     }
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Record Policy Passed in Audit Log
-      await auditService.log(
-        {
-          actor: 'agent',
-          entityType: 'RecoveryCase',
-          entityId: caseId,
-          eventType: 'policy_passed',
-          afterJson: { actionType: proposedAction, attemptNumber },
-          reason: `Policy check passed for '${proposedAction}' (Attempt ${attemptNumber}).`,
-        },
-        tx
-      );
+    await prisma.$transaction(
+      async (tx) => {
+        // 1. Record Policy Passed in Audit Log
+        await auditService.log(
+          {
+            actor: 'agent',
+            entityType: 'RecoveryCase',
+            entityId: caseId,
+            eventType: 'policy_passed',
+            afterJson: { actionType: proposedAction, attemptNumber },
+            reason: `Policy check passed for '${proposedAction}' (Attempt ${attemptNumber}).`,
+          },
+          tx
+        );
 
-      // 2. Insert RecoveryAction (unique [caseId, actionType, attemptNumber])
-      const action = await tx.recoveryAction.create({
-        data: {
-          caseId,
-          actionType: proposedAction,
-          channel: diagnosis.customerCopy?.channel || 'email',
-          payloadJson: actionPayload,
-          decisionReason: diagnosis.explanation,
-          modelUsed: diagnosis.modelUsed,
-          attemptNumber,
-          outcome: recoveryOutcome,
-        },
-      });
-
-      // 3. Record Action Executed in Audit Log
-      await auditService.log(
-        {
-          actor: 'agent',
-          entityType: 'RecoveryAction',
-          entityId: action.id,
-          eventType: 'action_executed',
-          afterJson: { actionType: proposedAction, payload: actionPayload, notification: notificationResult },
-          reason: `Executed action '${proposedAction}' via channel '${diagnosis.customerCopy?.channel || 'email'}'.`,
-        },
-        tx
-      );
-
-      // 4. Update Case state
-      if (nextStatus !== recoveryCase.status) {
-        await tx.recoveryCase.update({
-          where: { id: caseId },
+        // 2. Insert RecoveryAction (unique [caseId, actionType, attemptNumber])
+        const action = await tx.recoveryAction.create({
           data: {
-            status: nextStatus,
-            incentiveUsed: proposedAction === 'apply_recovery_incentive' ? 200 : recoveryCase.incentiveUsed,
-            closedAt: nextStatus !== 'OPEN' ? new Date() : null,
-            closedReason: nextStatus === 'RECOVERED' ? 'Payment recovered via autonomous intervention' : null,
+            caseId,
+            actionType: proposedAction,
+            channel: diagnosis.customerCopy?.channel || 'email',
+            payloadJson: actionPayload as Prisma.InputJsonValue,
+            decisionReason: diagnosis.explanation,
+            modelUsed: diagnosis.modelUsed,
+            attemptNumber,
+            outcome: recoveryOutcome,
           },
         });
 
-        if (nextStatus === 'RECOVERED') {
-          await auditService.log(
-            {
-              actor: 'system',
-              entityType: 'RecoveryCase',
-              entityId: caseId,
-              eventType: 'case_recovered',
-              beforeJson: { status: 'OPEN' },
-              afterJson: { status: 'RECOVERED', recoveredAmount: Number(recoveryCase.amount) },
-              reason: `Revenue recovered successfully: ₹${recoveryCase.amount}`,
+        // 3. Record Action Executed in Audit Log
+        await auditService.log(
+          {
+            actor: 'agent',
+            entityType: 'RecoveryAction',
+            entityId: action.id,
+            eventType: 'action_executed',
+            afterJson: { actionType: proposedAction, payload: actionPayload, notification: notificationResult },
+            reason: `Executed action '${proposedAction}' via channel '${diagnosis.customerCopy?.channel || 'email'}'.`,
+          },
+          tx
+        );
+
+        // 4. Update Case state
+        if (nextStatus !== recoveryCase.status) {
+          await tx.recoveryCase.update({
+            where: { id: caseId },
+            data: {
+              status: nextStatus,
+              incentiveUsed: proposedAction === 'apply_recovery_incentive' ? 200 : recoveryCase.incentiveUsed,
+              closedAt: nextStatus !== 'OPEN' ? new Date() : null,
+              closedReason: nextStatus === 'RECOVERED' ? 'Payment recovered via autonomous intervention' : null,
             },
-            tx
-          );
+          });
+
+          if (nextStatus === 'RECOVERED') {
+            await auditService.log(
+              {
+                actor: 'system',
+                entityType: 'RecoveryCase',
+                entityId: caseId,
+                eventType: 'case_recovered',
+                beforeJson: { status: 'OPEN' },
+                afterJson: { status: 'RECOVERED', recoveredAmount: Number(recoveryCase.amount) },
+                reason: `Revenue recovered successfully: ₹${recoveryCase.amount}`,
+              },
+              tx
+            );
+          }
         }
-      }
-    });
+      },
+      { timeout: 15000 }
+    );
 
     return {
       caseId,
@@ -315,7 +344,7 @@ export class CaseService {
   /**
    * Trigger batch run across all open cases
    */
-  async runBatch(merchantId?: string) {
+  async runBatch(merchantId?: string, options?: { nowOverride?: Date }) {
     const where: Prisma.RecoveryCaseWhereInput = { status: 'OPEN' };
     if (merchantId) where.merchantId = merchantId;
 
@@ -329,15 +358,16 @@ export class CaseService {
     const results = [];
     for (const c of openCases) {
       try {
-        const res = await this.processCase(c.id);
+        const res = await this.processCase(c.id, options);
         results.push(res);
-      } catch (err: any) {
-        logger.error({ caseId: c.id, err: err.message }, 'Error processing case in batch');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        logger.error({ caseId: c.id, err: errorMessage }, 'Error processing case in batch');
         results.push({
           caseId: c.id,
           status: 'OPEN' as CaseStatus,
           outcome: 'error',
-          reason: err.message,
+          reason: errorMessage,
         });
       }
     }
