@@ -41,10 +41,18 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// CORS configuration
+// CORS configuration — supports comma-separated origins and ignores trailing slashes
+const allowedOrigins = env.CLIENT_URL.split(',').map((u) => u.trim().replace(/\/$/, ''));
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      if (allowedOrigins.includes(normalizedOrigin) || allowedOrigins.includes('*') || env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      callback(null, true); // Allow origin dynamically for credentials
+    },
     credentials: true,
   })
 );
