@@ -166,9 +166,16 @@ CRITICAL RULES:
         },
       });
 
-      const response = await model.generateContent([
-        { text: systemPrompt },
-        { text: userPrompt },
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini API request timed out after 8000ms')), 8000)
+      );
+
+      const response = await Promise.race([
+        model.generateContent([
+          { text: systemPrompt },
+          { text: userPrompt },
+        ]),
+        timeoutPromise,
       ]);
 
       const text = response.response.text();

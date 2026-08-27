@@ -135,7 +135,7 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
                 </div>
                 <div className="text-right font-mono text-xs text-emerald-700 dark:text-emerald-400">
                   <span>+78.4% Net Yield</span>
-                  <div className="text-[10px] text-slate-500 dark:text-zinc-500">vs 0% unassisted</div>
+                  <div className="text-[10px] text-slate-600 dark:text-zinc-300">vs 0% unassisted</div>
                 </div>
               </div>
             </div>

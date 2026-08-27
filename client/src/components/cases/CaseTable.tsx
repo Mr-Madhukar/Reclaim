@@ -81,11 +81,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                   <tr
                     key={kase.id}
                     onClick={() => onSelectCase(kase)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectCase(kase); } }}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`View case for ${kase.customer.name}, ${formatINR(kase.amount)}, status: ${getStatusBadgeProps(kase.status).label}`}
-                    className="hover:bg-cream-200/80 dark:hover:bg-surface-800/80 transition-colors cursor-pointer group focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
+                    className="hover:bg-cream-200/80 dark:hover:bg-surface-800/80 transition-colors cursor-pointer group"
                   >
                     {/* Customer info */}
                     <td className="py-4 px-6">
@@ -144,8 +140,12 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                     {/* Inspect button */}
                     <td className="py-4 px-6 text-right">
                       <button
-                        aria-label={`Inspect case for ${kase.customer.name}`}
-                        className="p-1.5 rounded-lg bg-cream-200 dark:bg-surface-750 text-brand-500 group-hover:bg-brand-500 group-hover:text-white transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectCase(kase);
+                        }}
+                        aria-label={`Inspect case for ${kase.customer.name}, amount ${formatINR(kase.amount)}`}
+                        className="p-1.5 rounded-lg bg-cream-200 dark:bg-surface-750 text-brand-500 group-hover:bg-brand-500 group-hover:text-white transition-all focus:outline-hidden focus:ring-2 focus:ring-brand-500"
                       >
                         <ChevronRight className="h-4 w-4" aria-hidden="true" />
                       </button>

@@ -254,23 +254,23 @@ export const LaneShowcase: React.FC = () => {
               </div>
               <div className="p-4 rounded-xl bg-black text-slate-100 font-mono text-xs border border-white/[0.08] space-y-2">
                 <div>
-                  <span className="text-zinc-500">Customer: </span>
+                  <span className="text-zinc-300">Customer: </span>
                   <span className="text-white font-semibold">{current.simulatedCase.customer}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500">Amount at Risk: </span>
+                  <span className="text-zinc-300">Amount at Risk: </span>
                   <span className="text-red-400 font-semibold">{current.simulatedCase.amount}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500">Diagnosis: </span>
+                  <span className="text-zinc-300">Diagnosis: </span>
                   <span className="text-brand-400">{current.simulatedCase.rootCause}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500">Action: </span>
+                  <span className="text-zinc-300">Action: </span>
                   <span className="text-indigo-400">{current.simulatedCase.actionTaken}</span>
                 </div>
                 <div className="pt-2 border-t border-zinc-800">
-                  <span className="text-zinc-500">Outcome: </span>
+                  <span className="text-zinc-300">Outcome: </span>
                   <span className="text-emerald-400 font-bold">{current.simulatedCase.outcome}</span>
                 </div>
               </div>

@@ -117,17 +117,19 @@ export const PolicyConfigView: React.FC = () => {
                 {/* Field 1: Max Attempts */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-semibold text-cream-800 dark:text-slate-200">
-                    <span>Max Retry Attempts</span>
+                    <label htmlFor={`max-attempts-${config.id}`}>Max Retry Attempts</label>
                     <span className="font-mono text-brand-500 font-bold">
                       {currentForm.maxAttempts} Attempts
                     </span>
                   </div>
                   <input
+                    id={`max-attempts-${config.id}`}
                     type="range"
                     min="1"
                     max="6"
                     disabled={!isAdmin}
                     value={currentForm.maxAttempts || 3}
+                    aria-label={`Max retry attempts for ${laneProps.label}`}
                     onChange={(e) => handleChange(config.id, 'maxAttempts', parseInt(e.target.value))}
                     className="w-full accent-brand-500 cursor-pointer disabled:opacity-50"
                   />
@@ -139,18 +141,20 @@ export const PolicyConfigView: React.FC = () => {
                 {/* Field 2: Cooldown Minutes */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-semibold text-cream-800 dark:text-slate-200">
-                    <span>Cool-down Window</span>
+                    <label htmlFor={`cooldown-${config.id}`}>Cool-down Window</label>
                     <span className="font-mono text-brand-500 font-bold">
                       {currentForm.cooldownMinutes} Minutes
                     </span>
                   </div>
                   <input
+                    id={`cooldown-${config.id}`}
                     type="range"
                     min="15"
                     max="1440"
                     step="15"
                     disabled={!isAdmin}
                     value={currentForm.cooldownMinutes || 60}
+                    aria-label={`Cool-down window in minutes for ${laneProps.label}`}
                     onChange={(e) => handleChange(config.id, 'cooldownMinutes', parseInt(e.target.value))}
                     className="w-full accent-brand-500 cursor-pointer disabled:opacity-50"
                   />
@@ -162,18 +166,20 @@ export const PolicyConfigView: React.FC = () => {
                 {/* Field 3: Max Incentive Ceiling */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-semibold text-cream-800 dark:text-slate-200">
-                    <span>Max Incentive Ceiling</span>
+                    <label htmlFor={`incentive-${config.id}`}>Max Incentive Ceiling</label>
                     <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                       {formatINR(currentForm.maxIncentiveAmount || 0)}
                     </span>
                   </div>
                   <input
+                    id={`incentive-${config.id}`}
                     type="number"
                     min="0"
                     max="2000"
                     step="50"
                     disabled={!isAdmin}
                     value={currentForm.maxIncentiveAmount || 0}
+                    aria-label={`Max incentive ceiling amount for ${laneProps.label}`}
                     onChange={(e) => handleChange(config.id, 'maxIncentiveAmount', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white disabled:opacity-50"
                   />
@@ -185,18 +191,20 @@ export const PolicyConfigView: React.FC = () => {
                 {/* Field 4: Global Daily Cap */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-semibold text-cream-800 dark:text-slate-200">
-                    <span>Daily Outreach Cap</span>
+                    <label htmlFor={`daily-cap-${config.id}`}>Daily Outreach Cap</label>
                     <span className="font-mono text-slate-900 dark:text-white font-bold">
                       {currentForm.dailyCapGlobal || 500} Actions/Day
                     </span>
                   </div>
                   <input
+                    id={`daily-cap-${config.id}`}
                     type="number"
                     min="10"
                     max="5000"
                     step="50"
                     disabled={!isAdmin}
                     value={currentForm.dailyCapGlobal || 500}
+                    aria-label={`Daily outreach cap for ${laneProps.label}`}
                     onChange={(e) => handleChange(config.id, 'dailyCapGlobal', parseInt(e.target.value) || 500)}
                     className="w-full px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white disabled:opacity-50"
                   />
