@@ -89,8 +89,9 @@ app.get(['/health', '/api/health'], (_req: Request, res: Response) => {
   });
 });
 
-// Mount API routes
+// Mount API routes (both /api prefix and direct paths)
 app.use('/api', apiRouter);
+app.use(apiRouter);
 
 interface AppError extends Partial<Error> {
   statusCode?: number;
