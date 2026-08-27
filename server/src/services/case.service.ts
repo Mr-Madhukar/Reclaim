@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { CaseStatus, Lane, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
@@ -216,7 +217,7 @@ export class CaseService {
         });
       }
     } else if (proposedAction === 'apply_recovery_incentive') {
-      const incentiveCode = `RECLAIM${Math.floor(1000 + Math.random() * 9000)}`;
+      const incentiveCode = `RECLAIM${crypto.randomInt(1000, 10000)}`;
       actionPayload = { incentiveAmount: 200, incentiveCode };
 
       if (diagnosis.customerCopy) {

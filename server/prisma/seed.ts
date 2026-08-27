@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { PrismaClient, Role, Lane, CaseStatus, PaymentStatus, CheckoutStatus, InvoiceStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -128,7 +129,7 @@ async function main() {
         merchantId: merchant.id,
         name,
         email: `${emailName}@example.com`,
-        phone: `+9198${Math.floor(10000000 + Math.random() * 90000000)}`,
+        phone: `+9198${crypto.randomInt(10000000, 100000000)}`,
         optedOut,
       },
     });
@@ -155,7 +156,7 @@ async function main() {
   for (let i = 0; i < 25; i++) {
     const cust = customers[i];
     const failInfo = failureCodes[i % failureCodes.length];
-    const amount = Math.floor(500 + Math.random() * 9500);
+    const amount = crypto.randomInt(500, 10000);
 
     const paymentAttempt = await prisma.paymentAttempt.create({
       data: {
@@ -190,8 +191,8 @@ async function main() {
   // 5.2 Lane B: CHECKOUT Drop-off Cases (~15 cases)
   for (let i = 25; i < 40; i++) {
     const cust = customers[i];
-    const cartValue = Math.floor(1200 + Math.random() * 15000);
-    const hoursAgo = Math.floor(1 + Math.random() * 48);
+    const cartValue = crypto.randomInt(1200, 16200);
+    const hoursAgo = crypto.randomInt(1, 49);
     const abandonedAt = new Date(Date.now() - hoursAgo * 3600 * 1000);
 
     const checkoutSession = await prisma.checkoutSession.create({
@@ -225,8 +226,8 @@ async function main() {
   // 5.3 Lane C: RECEIVABLE Overdue Invoices (~15 cases)
   for (let i = 40; i < 55; i++) {
     const cust = customers[i];
-    const amountDue = Math.floor(10000 + Math.random() * 90000);
-    const daysOverdue = Math.floor(5 + Math.random() * 45);
+    const amountDue = crypto.randomInt(10000, 100000);
+    const daysOverdue = crypto.randomInt(5, 50);
     const dueDate = new Date(Date.now() - daysOverdue * 24 * 3600 * 1000);
 
     const invoice = await prisma.invoice.create({

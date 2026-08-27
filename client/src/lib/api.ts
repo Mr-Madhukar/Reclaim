@@ -85,13 +85,8 @@ apiClient.interceptors.response.use(
           );
           newToken = data.accessToken;
         } catch {
-          // If refresh fails, auto-authenticate with demo admin credentials
-          const { data } = await axios.post<AuthResponse>(
-            `${API_BASE_URL}/auth/login`,
-            { email: 'admin@reclaim.demo', password: 'Demo@12345' },
-            { withCredentials: true }
-          );
-          newToken = data.accessToken;
+          localStorage.removeItem('reclaim_auth_token');
+          newToken = null;
         }
 
         if (newToken) {
@@ -101,9 +96,13 @@ apiClient.interceptors.response.use(
           }
           processQueue(null, newToken);
           return apiClient(originalRequest);
+        } else {
+          processQueue(new Error('Session expired'), null);
+          return Promise.reject(error);
         }
       } catch (refreshErr) {
         processQueue(refreshErr instanceof Error ? refreshErr : new Error('Re-authentication failed'), null);
+        return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
       }

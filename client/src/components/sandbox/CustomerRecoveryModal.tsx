@@ -79,7 +79,7 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
       try {
         await onPaymentSuccess(`UPI - ${appName}`);
         setIsProcessing(false);
-        setPaymentId(`pay_recov_${Math.random().toString(36).substring(2, 11)}`);
+        setPaymentId(`pay_recov_${window.crypto.randomUUID().replace(/-/g, '').slice(0, 10)}`);
         setStep('SUCCESS');
       } catch {
         setIsProcessing(false);
@@ -102,7 +102,7 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
       try {
         await onPaymentSuccess(`Card (${cardNumber.slice(-4)}) 3DS`);
         setIsProcessing(false);
-        setPaymentId(`pay_recov_${Math.random().toString(36).substring(2, 11)}`);
+        setPaymentId(`pay_recov_${window.crypto.randomUUID().replace(/-/g, '').slice(0, 10)}`);
         setStep('SUCCESS');
       } catch {
         setIsProcessing(false);
@@ -118,7 +118,7 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
       try {
         await onPaymentSuccess(`NetBanking - ${selectedBank}`);
         setIsProcessing(false);
-        setPaymentId(`pay_recov_${Math.random().toString(36).substring(2, 11)}`);
+        setPaymentId(`pay_recov_${window.crypto.randomUUID().replace(/-/g, '').slice(0, 10)}`);
         setStep('SUCCESS');
       } catch {
         setIsProcessing(false);
