@@ -79,8 +79,14 @@ export const api = {
       const { data } = await apiClient.get<{ data: { case: RecoveryCase } }>(`/cases/${id}`);
       return data.data.case;
     },
-    triggerAction: async (id: string): Promise<{ success: boolean; message: string; action?: unknown }> => {
-      const { data } = await apiClient.post<{ data: { success: boolean; message: string; action?: unknown } }>(`/cases/${id}/trigger`);
+    triggerAction: async (
+      id: string,
+      options?: { locale?: 'en' | 'hinglish' | 'hi'; simulateOutage?: boolean }
+    ): Promise<{ success: boolean; message: string; action?: unknown }> => {
+      const { data } = await apiClient.post<{ data: { success: boolean; message: string; action?: unknown } }>(
+        `/cases/${id}/trigger`,
+        options
+      );
       return data.data;
     },
     resolveEscalation: async (id: string, notes: string, outcome: 'RECOVERED' | 'EXPIRED' | 'UNRESOLVED'): Promise<void> => {

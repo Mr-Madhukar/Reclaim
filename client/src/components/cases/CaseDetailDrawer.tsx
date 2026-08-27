@@ -220,6 +220,69 @@ export const CaseDetailDrawer: React.FC<CaseDetailDrawerProps> = ({ caseId, onCl
               </p>
             </div>
 
+            {/* Mandate & Autonomous Retry Sequencer Visualizer */}
+            <div className="p-5 rounded-2xl glass-card border-brand-500/20 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 font-mono">
+                  <span>Mandate &amp; Retry Sequence Flow</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/30">
+                  {kase.actions && kase.actions.length > 0 ? `${kase.actions.length} Touches Executed` : 'Attempt 1 Ready'}
+                </span>
+              </div>
+
+              {/* Interactive Timeline Stepper */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                {/* Step 1: Detect & Diagnose */}
+                <div className="p-3 rounded-xl bg-cream-200/80 dark:bg-surface-850 border border-emerald-500/40 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-emerald-600 dark:text-emerald-400">
+                    <span>1. Signal Ingest</span>
+                    <span className="text-[10px]">✓</span>
+                  </div>
+                  <p className="text-[10px] text-cream-600 dark:text-slate-400">
+                    {formatRootCause(kase.rootCause)}
+                  </p>
+                </div>
+
+                {/* Step 2: Policy Compliance Check */}
+                <div className="p-3 rounded-xl bg-cream-200/80 dark:bg-surface-850 border border-emerald-500/40 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-emerald-600 dark:text-emerald-400">
+                    <span>2. Policy Gate</span>
+                    <span className="text-[10px]">✓</span>
+                  </div>
+                  <p className="text-[10px] text-cream-600 dark:text-slate-400">
+                    DND 9-19 IST + Cooldown
+                  </p>
+                </div>
+
+                {/* Step 3: Bounded Touch */}
+                <div className={`p-3 rounded-xl bg-cream-200/80 dark:bg-surface-850 border space-y-1 ${
+                  kase.actions && kase.actions.length > 0 ? 'border-emerald-500/40' : 'border-brand-500/50 animate-pulse'
+                }`}>
+                  <div className="flex items-center justify-between font-bold text-brand-600 dark:text-brand-400">
+                    <span>3. Intervention</span>
+                    <span className="text-[10px]">{kase.actions && kase.actions.length > 0 ? '✓' : '●'}</span>
+                  </div>
+                  <p className="text-[10px] text-cream-600 dark:text-slate-400 truncate">
+                    {kase.actions && kase.actions.length > 0 ? kase.actions[0].actionType : 'Ready to Dispatch'}
+                  </p>
+                </div>
+
+                {/* Step 4: Resolution Outcome */}
+                <div className={`p-3 rounded-xl bg-cream-200/80 dark:bg-surface-850 border space-y-1 ${
+                  kase.status === 'RECOVERED' ? 'border-emerald-500 bg-emerald-500/10' : 'border-cream-300 dark:border-surface-700'
+                }`}>
+                  <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
+                    <span>4. Outcome</span>
+                    <span className="text-[10px]">{kase.status === 'RECOVERED' ? '₹' : '⏳'}</span>
+                  </div>
+                  <p className="text-[10px] text-cream-600 dark:text-slate-400 font-mono">
+                    {kase.status === 'RECOVERED' ? 'Recovered & Verified' : kase.status}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Action Trigger Buttons (Role Gated) */}
             <div className="p-5 rounded-2xl glass-card border-brand-500/30 space-y-4">
               <div className="flex items-center justify-between">

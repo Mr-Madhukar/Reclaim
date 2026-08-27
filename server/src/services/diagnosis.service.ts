@@ -143,11 +143,13 @@ export class DiagnosisService {
     currency?: string;
     attemptNumber: number;
     priorActions?: string[];
+    locale?: 'en' | 'hinglish' | 'hi';
+    simulateOutage?: boolean;
   }): Promise<DiagnosisResult> {
     const code = (params.failureCode || '').trim().toUpperCase();
 
-    // 1. Rules-First Classifier Path
-    if (code && KNOWN_FAILURE_CODE_MAP[code]) {
+    // 1. Rules-First Classifier Path (Bypasses LLM unless simulateOutage or unknown)
+    if (code && KNOWN_FAILURE_CODE_MAP[code] && !params.simulateOutage) {
       const match = KNOWN_FAILURE_CODE_MAP[code];
       logger.info(
         { failureCode: code, rootCause: match.rootCause },
@@ -162,6 +164,7 @@ export class DiagnosisService {
         amount: params.amount,
         currency: params.currency || 'INR',
         action: match.recommendedAction,
+        locale: params.locale,
       });
 
       return {
@@ -175,7 +178,7 @@ export class DiagnosisService {
     }
 
     // Lane-specific deterministic heuristics for Checkout and Receivables
-    if (params.lane === 'CHECKOUT') {
+    if (params.lane === 'CHECKOUT' && !params.simulateOutage) {
       const action: BoundedActionType =
         params.amount >= 2000 && params.attemptNumber >= 2
           ? 'apply_recovery_incentive'
@@ -189,13 +192,15 @@ export class DiagnosisService {
         modelUsed: 'rules',
         customerCopy: {
           channel: 'email',
-          subject: 'Complete your checkout with Reclaim',
-          body: `Hi ${params.customerName}, your selected items worth ${params.currency || 'INR'} ${params.amount} are still waiting for you. Click here to resume checkout.`,
+          subject: params.locale === 'hinglish' ? 'Aapka checkout bacha hua hai' : 'Complete your checkout with Reclaim',
+          body: params.locale === 'hinglish'
+            ? `Namaste ${params.customerName}, aapke cart me ${params.currency || 'INR'} ${params.amount} ka items save hai. Turant complete karne ke liye yahan click karein.`
+            : `Hi ${params.customerName}, your selected items worth ${params.currency || 'INR'} ${params.amount} are still waiting for you. Click here to resume checkout.`,
         },
       };
     }
 
-    if (params.lane === 'RECEIVABLE') {
+    if (params.lane === 'RECEIVABLE' && !params.simulateOutage) {
       const action: BoundedActionType =
         params.amount >= 50000 && params.attemptNumber >= 2
           ? 'offer_payment_plan'
@@ -209,16 +214,18 @@ export class DiagnosisService {
         modelUsed: 'rules',
         customerCopy: {
           channel: 'email',
-          subject: 'Overdue invoice payment reminder',
-          body: `Dear ${params.customerName}, this is a formal reminder that invoice amounting to ${params.currency || 'INR'} ${params.amount} is currently overdue. Please review payment options.`,
+          subject: params.locale === 'hinglish' ? 'Overdue invoice payment reminder' : 'Overdue invoice payment reminder',
+          body: params.locale === 'hinglish'
+            ? `Namaste ${params.customerName}, aapka ${params.currency || 'INR'} ${params.amount} ka invoice due date cross kar chuka hai. Kripya payment options check karein.`
+            : `Dear ${params.customerName}, this is a formal reminder that invoice amounting to ${params.currency || 'INR'} ${params.amount} is currently overdue. Please review payment options.`,
         },
       };
     }
 
-    // 2. Ambiguous / Unknown Failure: Delegate to Gemini Structured Output
+    // 2. Ambiguous / Unknown Failure / Chaos Simulation: Delegate to Gemini Structured Output (or fallback)
     logger.info(
-      { rawReason: params.failureReasonRaw, code },
-      '[Diagnosis Service] Unrecognized failure code, routing to Gemini adapter'
+      { rawReason: params.failureReasonRaw, code, simulateOutage: params.simulateOutage },
+      '[Diagnosis Service] Routing to Gemini adapter'
     );
 
     const { result, modelUsed } = await geminiAdapter.diagnoseAndDraft(params);
@@ -243,35 +250,48 @@ export class DiagnosisService {
     amount: number;
     currency: string;
     action: BoundedActionType;
+    locale?: 'en' | 'hinglish' | 'hi';
   }): { channel: 'email' | 'sms' | 'whatsapp'; subject?: string; body: string } {
+    const isHinglish = params.locale === 'hinglish';
+
     switch (params.rootCause) {
       case 'insufficient_funds':
         return {
           channel: 'email',
-          subject: 'Action required: Complete your payment',
-          body: `Hi ${params.customerName}, your payment of ${params.currency} ${params.amount} could not be processed due to insufficient balance. You can retry with the secure link below or use another payment method.`,
+          subject: isHinglish ? 'Action required: Apna payment complete karein' : 'Action required: Complete your payment',
+          body: isHinglish
+            ? `Namaste ${params.customerName}, insufficient balance ki wajah se aapka ${params.currency} ${params.amount} ka payment process nahi ho saka. Niche link se dusre bank ya UPI se retry karein.`
+            : `Hi ${params.customerName}, your payment of ${params.currency} ${params.amount} could not be processed due to insufficient balance. You can retry with the secure link below or use another payment method.`,
         };
       case 'bank_timeout':
         return {
           channel: 'sms',
-          body: `Hi ${params.customerName}, your bank timed out during your payment of ${params.currency} ${params.amount}. Tap to retry securely: https://rzp.io/i/test_retry`,
+          body: isHinglish
+            ? `Namaste ${params.customerName}, aapke bank server par timeout hua (${params.currency} ${params.amount}). Turant retry karein: https://rzp.io/i/test_retry`
+            : `Hi ${params.customerName}, your bank timed out during your payment of ${params.currency} ${params.amount}. Tap to retry securely: https://rzp.io/i/test_retry`,
         };
       case 'card_expired':
         return {
           channel: 'email',
-          subject: 'Update your payment method',
-          body: `Hi ${params.customerName}, your payment of ${params.currency} ${params.amount} was declined because your card on file has expired. Please provide an alternative payment method to proceed.`,
+          subject: isHinglish ? 'Apna payment method update karein' : 'Update your payment method',
+          body: isHinglish
+            ? `Namaste ${params.customerName}, aapka registered card expire ho chuka hai (${params.currency} ${params.amount}). Kripya naya card ya UPI add karein.`
+            : `Hi ${params.customerName}, your payment of ${params.currency} ${params.amount} was declined because your card on file has expired. Please provide an alternative payment method to proceed.`,
         };
       case 'otp_failure':
         return {
           channel: 'sms',
-          body: `Hi ${params.customerName}, your OTP verification was not completed for ${params.currency} ${params.amount}. Click to retry: https://rzp.io/i/test_retry`,
+          body: isHinglish
+            ? `Namaste ${params.customerName}, ${params.currency} ${params.amount} ke liye OTP verification incomplete raha. Click karke retry karein: https://rzp.io/i/test_retry`
+            : `Hi ${params.customerName}, your OTP verification was not completed for ${params.currency} ${params.amount}. Click to retry: https://rzp.io/i/test_retry`,
         };
       case 'mandate_expired':
         return {
           channel: 'email',
-          subject: 'Re-authenticate your auto-pay subscription',
-          body: `Hi ${params.customerName}, your auto-debit subscription mandate for ${params.currency} ${params.amount} has expired. Please re-authorize your mandate to continue uninterrupted service.`,
+          subject: isHinglish ? 'Apna auto-pay mandate renew karein' : 'Re-authenticate your auto-pay subscription',
+          body: isHinglish
+            ? `Namaste ${params.customerName}, aapka ${params.currency} ${params.amount} ka auto-debit subscription mandate expire ho gaya hai. Service uninterrupted rakhne ke liye re-authorize karein.`
+            : `Hi ${params.customerName}, your auto-debit subscription mandate for ${params.currency} ${params.amount} has expired. Please re-authorize your mandate to continue uninterrupted service.`,
         };
       case 'risk_decline':
         return {
@@ -282,8 +302,10 @@ export class DiagnosisService {
       default:
         return {
           channel: 'email',
-          subject: 'Complete your pending payment',
-          body: `Hi ${params.customerName}, your payment of ${params.currency} ${params.amount} is pending. Please click to complete your transaction.`,
+          subject: isHinglish ? 'Pending payment complete karein' : 'Complete your pending payment',
+          body: isHinglish
+            ? `Namaste ${params.customerName}, aapka ${params.currency} ${params.amount} ka payment pending hai. Complete karne ke liye click karein.`
+            : `Hi ${params.customerName}, your payment of ${params.currency} ${params.amount} is pending. Please click to complete your transaction.`,
         };
     }
   }

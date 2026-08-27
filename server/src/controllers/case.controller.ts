@@ -115,7 +115,11 @@ export class CaseController {
         return;
       }
 
-      const result = await caseService.processCase(id);
+      const { locale, simulateOutage } = (req.body || {}) as {
+        locale?: 'en' | 'hinglish' | 'hi';
+        simulateOutage?: boolean;
+      };
+      const result = await caseService.processCase(id, { locale, simulateOutage });
       res.json({
         message: 'Action processing completed',
         result,

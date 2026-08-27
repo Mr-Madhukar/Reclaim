@@ -38,11 +38,22 @@ export class GeminiAdapter {
     currency?: string;
     attemptNumber: number;
     priorActions?: string[];
+    locale?: 'en' | 'hinglish' | 'hi';
+    simulateOutage?: boolean;
   }): Promise<{
     result: LLMDiagnosisOutput;
     modelUsed: 'gemini-2.0-flash' | 'fallback_template';
     fallbackUsed: boolean;
   }> {
+    if (params.simulateOutage) {
+      logger.warn('[Chaos Mode] Simulated Gemini API 429 rate limit / outage; activating self-healing static fallback');
+      return {
+        result: this.getStaticFallback(params),
+        modelUsed: 'fallback_template',
+        fallbackUsed: true,
+      };
+    }
+
     if (!this.genAI || !env.GEMINI_API_KEY) {
       logger.info('Gemini API key not configured, using static fallback template');
       return {
@@ -52,8 +63,14 @@ export class GeminiAdapter {
       };
     }
 
+    const isHinglish = params.locale === 'hinglish';
+    const languageInstruction = isHinglish
+      ? 'Draft customerCopy in natural, empathetic conversational Hinglish (Hindi words in English alphabet, e.g. "Namaste [Name], aapka payment temporary technical reason se complete nahi ho paya...").'
+      : 'Draft customerCopy in clear, professional English.';
+
     const systemPrompt = `You are Reclaim AI, an autonomous revenue recovery diagnostic assistant.
 Your job is to analyze failure signals, diagnose the root cause, and draft empathetic, compliant customer recovery messages.
+${languageInstruction}
 CRITICAL RULES:
 1. Only choose recommendedAction from:
    - 'send_retry_link'
@@ -84,7 +101,8 @@ CRITICAL RULES:
 - Attempt Number: ${params.attemptNumber}
 - Failure Code: ${params.failureCode || 'N/A'}
 - Raw Failure Reason: ${params.failureReasonRaw || 'N/A'}
-- Prior Actions: ${params.priorActions?.join(', ') || 'None'}`;
+- Prior Actions: ${params.priorActions?.join(', ') || 'None'}
+- Preferred Language: ${params.locale || 'en'}`;
 
     try {
       const model = this.genAI.getGenerativeModel({
@@ -157,8 +175,9 @@ CRITICAL RULES:
         modelUsed: 'gemini-2.0-flash',
         fallbackUsed: false,
       };
-    } catch (err: any) {
-      logger.warn({ err: err.message }, 'Gemini API call failed, falling back to static template');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logger.warn({ err: errorMessage }, 'Gemini API call failed, falling back to static template');
       return {
         result: this.getStaticFallback(params),
         modelUsed: 'fallback_template',
@@ -176,8 +195,10 @@ CRITICAL RULES:
     amount: number;
     currency?: string;
     failureCode?: string;
+    locale?: 'en' | 'hinglish' | 'hi';
   }): LLMDiagnosisOutput {
     const currency = params.currency || 'INR';
+    const isHinglish = params.locale === 'hinglish';
 
     if (params.lane === 'PAYMENT') {
       return {
@@ -187,8 +208,10 @@ CRITICAL RULES:
         recommendedAction: 'send_retry_link',
         customerCopy: {
           channel: 'email',
-          subject: 'Complete your pending payment',
-          body: `Hi ${params.customerName}, your payment of ${currency} ${params.amount} was interrupted. Please click the link to complete your transaction securely.`,
+          subject: isHinglish ? 'Aapka pending payment complete karein' : 'Complete your pending payment',
+          body: isHinglish
+            ? `Namaste ${params.customerName}, aapka ${currency} ${params.amount} ka payment bank timeout ki wajah se ruka hai. Niche diye link par tap karke 10 second me securely complete karein.`
+            : `Hi ${params.customerName}, your payment of ${currency} ${params.amount} was interrupted. Please click the link to complete your transaction securely.`,
         },
       };
     }
@@ -201,8 +224,10 @@ CRITICAL RULES:
         recommendedAction: 'send_checkout_recovery_nudge',
         customerCopy: {
           channel: 'email',
-          subject: 'Your cart is waiting for you',
-          body: `Hi ${params.customerName}, you left items in your cart worth ${currency} ${params.amount}. Complete your purchase today.`,
+          subject: isHinglish ? 'Aapka cart aapka wait kar raha hai' : 'Your cart is waiting for you',
+          body: isHinglish
+            ? `Namaste ${params.customerName}, aapne cart me ${currency} ${params.amount} ka items chhoda hai. Aaj hi apna order asani se complete karein.`
+            : `Hi ${params.customerName}, you left items in your cart worth ${currency} ${params.amount}. Complete your purchase today.`,
         },
       };
     }
@@ -215,8 +240,10 @@ CRITICAL RULES:
       recommendedAction: 'send_reminder',
       customerCopy: {
         channel: 'email',
-        subject: 'Friendly reminder: Invoice payment pending',
-        body: `Hi ${params.customerName}, this is a gentle reminder regarding your outstanding invoice for ${currency} ${params.amount}. Please review the payment options attached.`,
+        subject: isHinglish ? 'Gentle reminder: Invoice payment bacha hai' : 'Friendly reminder: Invoice payment pending',
+        body: isHinglish
+          ? `Namaste ${params.customerName}, aapka ${currency} ${params.amount} ka outstanding invoice due date cross kar chuka hai. Kripya payment options check karein.`
+          : `Hi ${params.customerName}, this is a gentle reminder regarding your outstanding invoice for ${currency} ${params.amount}. Please review the payment options attached.`,
       },
     };
   }

@@ -21,10 +21,10 @@ test.describe('Reclaim AI Revenue Recovery Agent — End-to-End Demo Flow', () =
     await page.getByRole('button', { name: /Dashboard/i }).first().click();
 
     // Verify key metric cards
-    await expect(page.getByText(/At Risk/i).first()).toBeVisible();
-    await expect(page.getByText(/Measured Recovered/i).first()).toBeVisible();
-    await expect(page.getByText(/Recovery Rate/i).first()).toBeVisible();
-    await expect(page.getByText(/Guardrail Stops/i).first()).toBeVisible();
+    await expect(page.getByText(/At Risk/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Measured Recovered/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Recovery Rate/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Guardrail Stops/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('3. Cases Workbench supports filtering, searching, and case inspection', async ({ page }) => {

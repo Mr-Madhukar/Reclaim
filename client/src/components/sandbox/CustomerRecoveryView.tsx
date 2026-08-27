@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Smartphone,
   CreditCard,
@@ -16,6 +16,11 @@ import {
   Battery,
   Signal,
   Check,
+  PhoneCall,
+  PhoneOff,
+  Volume2,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { useCases } from '../../hooks/useCases';
 import { api } from '../../lib/api';
@@ -40,7 +45,59 @@ export const CustomerRecoveryView: React.FC = () => {
   const [optOutReason, setOptOutReason] = useState<string>('Already paid through another channel');
   const [newUpiId, setNewUpiId] = useState<string>('user@okhdfcbank');
 
+  // AI Voice Agent Calling Simulation State
+  const [isCalling, setIsCalling] = useState<boolean>(false);
+  const [callDuration, setCallDuration] = useState<number>(0);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+
   const activeCase = openCases.find((c) => c.id === selectedCaseId) || openCases[0];
+
+  useEffect(() => {
+    if (!isCalling) return;
+
+    const interval = setInterval(() => {
+      setCallDuration((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isCalling]);
+
+  const handleStartCall = () => {
+    setCallDuration(0);
+    setIsCalling(true);
+    setIsSpeaking(true);
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const textToSpeak =
+        copyLanguage === 'hinglish'
+          ? `Namaste ${activeCase?.customer.name}. Reclaim AI revenue recovery assistant calling regarding your pending payment of rupees ${Number(activeCase?.amount)}. We noticed a temporary bank timeout. You can complete your transaction securely in ten seconds.`
+          : `Hello ${activeCase?.customer.name}. This is Reclaim AI calling regarding your pending payment of rupees ${Number(activeCase?.amount)}. A direct retry link has been sent to your registered phone number.`;
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.rate = 0.92;
+      utterance.pitch = 1.05;
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const handleEndCall = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsCalling(false);
+    setIsSpeaking(false);
+    setCallDuration(0);
+  };
+
+  const formatCallDuration = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
   const handleCustomerAction = async (
     action: 'PAY_SUCCESS' | 'OPT_OUT' | 'PROMISE_TO_PAY' | 'ALT_PAYMENT' | 'GRACE_PERIOD' | 'UPDATE_PAYMENT_METHOD',
@@ -91,7 +148,7 @@ export const CustomerRecoveryView: React.FC = () => {
             Customer Self-Service Payment &amp; Response Portal
           </h3>
           <p className="text-xs text-cream-700 dark:text-slate-400 mt-1">
-            Experience how customers receive AI recovery nudges, pay via Razorpay rails, request grace periods, or opt out.
+            Experience how customers receive AI recovery nudges, listen to AI voice calls, pay via Razorpay rails, or opt out.
           </p>
         </div>
 
@@ -106,6 +163,7 @@ export const CustomerRecoveryView: React.FC = () => {
               onChange={(e) => {
                 setSelectedCaseId(e.target.value);
                 setFeedback(null);
+                handleEndCall();
               }}
               className="px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 max-w-xs truncate"
             >
@@ -154,7 +212,7 @@ export const CustomerRecoveryView: React.FC = () => {
                     : 'text-cream-700 dark:text-slate-400 hover:text-brand-500'
                 }`}
               >
-                Hinglish (Localized)
+                Hinglish 🇮🇳
               </button>
             </div>
 
@@ -172,92 +230,173 @@ export const CustomerRecoveryView: React.FC = () => {
               </div>
 
               {/* Phone Screen Canvas */}
-              <div className="bg-cream-100 dark:bg-surface-900 rounded-[2rem] p-5 space-y-4 text-xs shadow-inner min-h-[460px] flex flex-col justify-between">
-                <div className="space-y-4">
-                  {/* Brand Header inside phone */}
-                  <div className="flex items-center justify-between pb-3 border-b border-cream-300 dark:border-surface-750">
-                    <div className="flex items-center space-x-1.5">
-                      <div className="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-[11px]">
-                        R
+              <div className="bg-cream-100 dark:bg-surface-900 rounded-[2rem] p-5 space-y-4 text-xs shadow-inner min-h-[470px] flex flex-col justify-between relative overflow-hidden">
+                {/* ACTIVE VOICE CALL OVERLAY */}
+                {isCalling ? (
+                  <div className="flex-1 flex flex-col items-center justify-between py-6 space-y-6 text-center animate-fade-in">
+                    <div className="space-y-2">
+                      <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-mono font-bold animate-pulse">
+                        <Volume2 className="h-3.5 w-3.5" />
+                        <span>AI OUTBOUND CALL CONNECTED</span>
                       </div>
-                      <span className="font-extrabold text-slate-900 dark:text-white text-xs">
-                        Razorpay Secure Pay
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                      100% VERIFIED
-                    </span>
-                  </div>
-
-                  {/* Gemini Personalized Recovery Copy Box */}
-                  <div className="p-3.5 rounded-2xl bg-brand-500/10 border border-brand-500/20 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-mono font-bold text-brand-600 dark:text-brand-400 uppercase">
-                      <div className="flex items-center space-x-1">
-                        <Sparkles className="h-3 w-3" />
-                        <span>AI Adaptive Recovery Copy</span>
+                      <h4 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                        Reclaim Voice Agent
+                      </h4>
+                      <p className="text-xs text-cream-600 dark:text-slate-400">
+                        Speaking with {activeCase.customer.name}
+                      </p>
+                      <div className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {formatCallDuration(callDuration)}
                       </div>
-                      <span className="text-[9px] lowercase bg-brand-500/15 px-1.5 py-0.5 rounded">
-                        {copyLanguage === 'en' ? 'en-IN' : 'hi-Latn'}
+                    </div>
+
+                    {/* Animated Audio Waveform */}
+                    <div className="flex items-center justify-center space-x-1.5 h-16">
+                      {[40, 70, 30, 90, 60, 100, 45, 80, 50, 95].map((height, idx) => (
+                        <div
+                          key={idx}
+                          className="w-1.5 rounded-full bg-brand-500 transition-all duration-300"
+                          style={{
+                            height: isSpeaking ? `${height}%` : '20%',
+                            animation: isSpeaking ? `pulse 0.8s ease-in-out ${idx * 0.1}s infinite alternate` : 'none',
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-surface-950/80 text-slate-200 text-[11px] text-left leading-relaxed border border-surface-750">
+                      <span className="font-bold text-brand-400 block mb-1">
+                        AI Agent Speech ({copyLanguage === 'hinglish' ? 'Hinglish' : 'English'}):
                       </span>
+                      {copyLanguage === 'hinglish' ? (
+                        <p>
+                          &ldquo;Namaste {activeCase.customer.name}. Reclaim AI calling regarding your {formatINR(activeCase.amount)} pending transaction. We noticed a temporary bank timeout. You can complete it securely in 10 seconds.&rdquo;
+                        </p>
+                      ) : (
+                        <p>
+                          &ldquo;Hello {activeCase.customer.name}. Reclaim AI calling regarding your interrupted payment of {formatINR(activeCase.amount)}. A direct retry link has been sent to your phone.&rdquo;
+                        </p>
+                      )}
                     </div>
 
-                    {copyLanguage === 'en' ? (
-                      <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
-                        &ldquo;Hi {activeCase.customer.name}, your payment of{' '}
-                        <strong>{formatINR(activeCase.amount)}</strong> could not be completed due to a temporary{' '}
-                        <strong className="text-brand-600 dark:text-brand-400">
-                          {formatRootCause(activeCase.rootCause)}
-                        </strong>
-                        . We have safely saved your cart so you can finish seamlessly in one click.&rdquo;
-                      </p>
-                    ) : (
-                      <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
-                        &ldquo;Namaste {activeCase.customer.name}, aapka{' '}
-                        <strong>{formatINR(activeCase.amount)}</strong> ka payment temporary technical issue (
-                        <strong className="text-brand-600 dark:text-brand-400">
-                          {formatRootCause(activeCase.rootCause)}
-                        </strong>
-                        ) ki wajah se ruka hai. Humne aapka transaction save kar liya hai taaki aap UPI ya Card se turant complete kar sakein.&rdquo;
-                      </p>
-                    )}
-                  </div>
+                    {/* Call Controls */}
+                    <div className="flex items-center space-x-6">
+                      <button
+                        onClick={() => setIsMuted(!isMuted)}
+                        className={`p-3 rounded-full ${
+                          isMuted ? 'bg-amber-500 text-white' : 'bg-surface-800 text-slate-300'
+                        }`}
+                      >
+                        {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                      </button>
 
-                  {/* Amount Due Card */}
-                  <div className="p-4 rounded-2xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-center space-y-1">
-                    <span className="text-[10px] text-cream-600 dark:text-slate-400 uppercase font-mono tracking-wider">
-                      Pending Amount
-                    </span>
-                    <div className="text-2xl font-extrabold font-mono text-slate-900 dark:text-white">
-                      {formatINR(activeCase.amount)}
-                    </div>
-                    <div className="flex items-center justify-center space-x-2 text-[10px] text-cream-600 dark:text-slate-400 font-mono">
-                      <span>Ref: {activeCase.sourceRefId.slice(0, 14)}...</span>
-                      <span>•</span>
-                      <span className="capitalize">{activeCase.lane.toLowerCase()}</span>
+                      <button
+                        onClick={handleEndCall}
+                        className="p-4 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/30 hover:scale-105 transition-all"
+                      >
+                        <PhoneOff className="h-6 w-6" />
+                      </button>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      {/* Brand Header inside phone */}
+                      <div className="flex items-center justify-between pb-3 border-b border-cream-300 dark:border-surface-750">
+                        <div className="flex items-center space-x-1.5">
+                          <div className="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-[11px]">
+                            R
+                          </div>
+                          <span className="font-extrabold text-slate-900 dark:text-white text-xs">
+                            Razorpay Secure Pay
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                          100% VERIFIED
+                        </span>
+                      </div>
 
-                {/* Simulated Payment Action Buttons */}
-                <div className="space-y-2 pt-2">
-                  <button
-                    onClick={() => setPaymentModalOpen(true)}
-                    disabled={isProcessing}
-                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 hover:scale-102 transition-all cursor-pointer"
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    <span>Pay {formatINR(activeCase.amount)} via Razorpay</span>
-                  </button>
+                      {/* Gemini Personalized Recovery Copy Box */}
+                      <div className="p-3.5 rounded-2xl bg-brand-500/10 border border-brand-500/20 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] font-mono font-bold text-brand-600 dark:text-brand-400 uppercase">
+                          <div className="flex items-center space-x-1">
+                            <Sparkles className="h-3 w-3" />
+                            <span>AI Adaptive Recovery Copy</span>
+                          </div>
+                          <span className="text-[9px] lowercase bg-brand-500/15 px-1.5 py-0.5 rounded">
+                            {copyLanguage === 'en' ? 'en-IN' : 'hi-Latn'}
+                          </span>
+                        </div>
 
-                  <button
-                    onClick={() => setPaymentModalOpen(true)}
-                    disabled={isProcessing}
-                    className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
-                  >
-                    <QrCode className="h-4 w-4" />
-                    <span>Instant UPI / QR Code Rail</span>
-                  </button>
-                </div>
+                        {copyLanguage === 'en' ? (
+                          <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
+                            &ldquo;Hi {activeCase.customer.name}, your payment of{' '}
+                            <strong>{formatINR(activeCase.amount)}</strong> could not be completed due to a temporary{' '}
+                            <strong className="text-brand-600 dark:text-brand-400">
+                              {formatRootCause(activeCase.rootCause)}
+                            </strong>
+                            . We have safely saved your cart so you can finish seamlessly in one click.&rdquo;
+                          </p>
+                        ) : (
+                          <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
+                            &ldquo;Namaste {activeCase.customer.name}, aapka{' '}
+                            <strong>{formatINR(activeCase.amount)}</strong> ka payment temporary technical issue (
+                            <strong className="text-brand-600 dark:text-brand-400">
+                              {formatRootCause(activeCase.rootCause)}
+                            </strong>
+                            ) ki wajah se ruka hai. Humne aapka transaction save kar liya hai taaki aap UPI ya Card se turant complete kar sakein.&rdquo;
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Amount Due Card */}
+                      <div className="p-4 rounded-2xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-center space-y-1">
+                        <span className="text-[10px] text-cream-600 dark:text-slate-400 uppercase font-mono tracking-wider">
+                          Pending Amount
+                        </span>
+                        <div className="text-2xl font-extrabold font-mono text-slate-900 dark:text-white">
+                          {formatINR(activeCase.amount)}
+                        </div>
+                        <div className="flex items-center justify-center space-x-2 text-[10px] text-cream-600 dark:text-slate-400 font-mono">
+                          <span>Ref: {activeCase.sourceRefId.slice(0, 14)}...</span>
+                          <span>•</span>
+                          <span className="capitalize">{activeCase.lane.toLowerCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Simulated Payment & Voice Action Buttons */}
+                    <div className="space-y-2 pt-2">
+                      <button
+                        onClick={() => setPaymentModalOpen(true)}
+                        disabled={isProcessing}
+                        className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 hover:scale-102 transition-all cursor-pointer"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        <span>Pay {formatINR(activeCase.amount)} via Razorpay</span>
+                      </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setPaymentModalOpen(true)}
+                          disabled={isProcessing}
+                          className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                        >
+                          <QrCode className="h-3.5 w-3.5" />
+                          <span>Instant UPI</span>
+                        </button>
+
+                        <button
+                          onClick={handleStartCall}
+                          className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-500/20 hover:scale-102 transition-all cursor-pointer"
+                        >
+                          <PhoneCall className="h-3.5 w-3.5 animate-bounce" />
+                          <span>AI Voice Call 🎙️</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

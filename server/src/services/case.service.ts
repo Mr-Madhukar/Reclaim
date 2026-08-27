@@ -14,7 +14,7 @@ export class CaseService {
    */
   async processCase(
     caseId: string,
-    options?: { nowOverride?: Date }
+    options?: { nowOverride?: Date; locale?: 'en' | 'hinglish' | 'hi'; simulateOutage?: boolean }
   ): Promise<{
     caseId: string;
     actionType?: BoundedActionType;
@@ -74,6 +74,8 @@ export class CaseService {
       amount: Number(recoveryCase.amount),
       attemptNumber,
       priorActions: priorActionTypes,
+      locale: options?.locale,
+      simulateOutage: options?.simulateOutage,
     });
 
     // Update case rootCause if newly diagnosed

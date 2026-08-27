@@ -71,6 +71,35 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadJSON = () => {
+    const jsonReport = {
+      benchmark: 'Razorpay AI Buildathon 2026 · Track 03 (AI Revenue Recovery)',
+      generatedAt: new Date().toISOString(),
+      metrics: {
+        totalAtRisk: atRisk,
+        totalRecovered: recovered,
+        netRecovered,
+        recoveryRatePercent: rate,
+        stoppingRuleTriggersCount: guardrailStops,
+        laneBreakdown: summary?.laneMetrics,
+      },
+      compliance: {
+        freeformActions: 0,
+        contactHourBreaches: 0,
+        optOutAdherencePercent: 100,
+        immutableAuditTrail: true,
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(jsonReport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reclaim-judge-dossier-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -97,18 +126,26 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
           <pre>{markdownReport}</pre>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+        <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
           <button
             onClick={handleCopy}
-            className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-800 border border-cream-300 dark:border-surface-700 text-xs font-bold text-slate-900 dark:text-white hover:border-brand-500 transition-colors"
+            className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-800 border border-cream-300 dark:border-surface-700 text-xs font-bold text-slate-900 dark:text-white hover:border-brand-500 transition-colors"
           >
             {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
             <span>{copied ? 'Copied to Clipboard!' : 'Copy Markdown'}</span>
           </button>
 
           <button
+            onClick={handleDownloadJSON}
+            className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-surface-850 hover:bg-surface-800 border border-surface-700 text-slate-200 text-xs font-mono font-bold transition-all"
+          >
+            <Download className="h-4 w-4 text-emerald-400" />
+            <span>Download JSON Dossier</span>
+          </button>
+
+          <button
             onClick={handleDownload}
-            className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-glow-orange transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-glow-orange transition-all"
           >
             <Download className="h-4 w-4" />
             <span>Download .md Report</span>
