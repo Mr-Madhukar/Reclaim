@@ -12,7 +12,16 @@ import {
   StoppingRulesBreakdown,
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
+    const trimmed = envUrl.trim().replace(/\/$/, '');
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
+  return 'http://localhost:4000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
