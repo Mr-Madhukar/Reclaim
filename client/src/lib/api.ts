@@ -58,12 +58,12 @@ export const api = {
 
   metrics: {
     getSummary: async (): Promise<MetricSummary> => {
-      const { data } = await apiClient.get<{ data: MetricSummary }>('/metrics/summary');
-      return data.data;
+      const { data } = await apiClient.get<MetricSummary | { data: MetricSummary }>('/metrics/summary');
+      return ((data as { data?: MetricSummary }).data || data) as MetricSummary;
     },
     getByLane: async (): Promise<Record<string, LaneMetric>> => {
-      const { data } = await apiClient.get<{ data: Record<string, LaneMetric> }>('/metrics/by-lane');
-      return data.data;
+      const { data } = await apiClient.get<{ laneMetrics?: Record<string, LaneMetric>; data?: Record<string, LaneMetric> }>('/metrics/by-lane');
+      return (data.laneMetrics || data.data || data) as Record<string, LaneMetric>;
     },
   },
 
@@ -72,24 +72,41 @@ export const api = {
       const cleanParams = Object.fromEntries(
         Object.entries(params || {}).filter(([_, v]) => v !== undefined && v !== 'ALL')
       );
-      const { data } = await apiClient.get<{ data: { cases: RecoveryCase[]; total: number; page: number; limit: number } }>('/cases', {
+      const { data } = await apiClient.get<{
+        items?: RecoveryCase[];
+        cases?: RecoveryCase[];
+        total?: number;
+        page?: number;
+        limit?: number;
+        data?: { items?: RecoveryCase[]; cases?: RecoveryCase[]; total?: number; page?: number; limit?: number };
+      }>('/cases', {
         params: cleanParams,
       });
-      return data.data;
+
+      const rootData = data.data || data;
+      const caseList = rootData.cases || rootData.items || (Array.isArray(rootData) ? rootData : []);
+      const total = rootData.total !== undefined ? rootData.total : caseList.length;
+
+      return {
+        cases: caseList,
+        total,
+        page: rootData.page || 1,
+        limit: rootData.limit || 20,
+      };
     },
     getById: async (id: string): Promise<RecoveryCase> => {
-      const { data } = await apiClient.get<{ data: { case: RecoveryCase } }>(`/cases/${id}`);
-      return data.data.case;
+      const { data } = await apiClient.get<{ case?: RecoveryCase; data?: { case?: RecoveryCase } }>(`/cases/${id}`);
+      return (data.case || data.data?.case || data) as RecoveryCase;
     },
     triggerAction: async (
       id: string,
       options?: { locale?: 'en' | 'hinglish' | 'hi'; simulateOutage?: boolean }
     ): Promise<{ success: boolean; message: string; action?: unknown }> => {
-      const { data } = await apiClient.post<{ data: { success: boolean; message: string; action?: unknown } }>(
+      const { data } = await apiClient.post<{ success: boolean; message: string; action?: unknown; data?: { success: boolean; message: string; action?: unknown } }>(
         `/cases/${id}/trigger`,
         options
       );
-      return data.data;
+      return data.data || data;
     },
     resolveEscalation: async (id: string, notes: string, outcome: 'RECOVERED' | 'EXPIRED' | 'UNRESOLVED'): Promise<void> => {
       await apiClient.post(`/cases/${id}/resolve`, { notes, outcome });
@@ -115,22 +132,35 @@ export const api = {
 
   policies: {
     list: async (): Promise<PolicyConfig[]> => {
-      const { data } = await apiClient.get<{ data: { policyConfigs: PolicyConfig[] } }>('/policy-configs');
-      return data.data.policyConfigs;
+      const { data } = await apiClient.get<{ policies?: PolicyConfig[]; policyConfigs?: PolicyConfig[]; data?: { policyConfigs?: PolicyConfig[] } }>('/policy-configs');
+      return (data.policies || data.policyConfigs || data.data?.policyConfigs || (Array.isArray(data) ? data : [])) as PolicyConfig[];
     },
     update: async (
       id: string,
       updates: Partial<Pick<PolicyConfig, 'maxAttempts' | 'cooldownMinutes' | 'maxIncentiveAmount' | 'dailyCapGlobal'>>
     ): Promise<PolicyConfig> => {
-      const { data } = await apiClient.put<{ data: { policyConfig: PolicyConfig } }>(`/policy-configs/${id}`, updates);
-      return data.data.policyConfig;
+      const { data } = await apiClient.put<{ policy?: PolicyConfig; policyConfig?: PolicyConfig; data?: { policyConfig?: PolicyConfig } }>(`/policy-configs/${id}`, updates);
+      return (data.policy || data.policyConfig || data.data?.policyConfig || data) as PolicyConfig;
     },
   },
 
   auditLogs: {
     list: async (params?: { entityType?: string; entityId?: string; limit?: number; page?: number }): Promise<{ auditLogs: AuditLog[]; total: number }> => {
-      const { data } = await apiClient.get<{ data: { auditLogs: AuditLog[]; total: number } }>('/audit-logs', { params });
-      return data.data;
+      const { data } = await apiClient.get<{
+        items?: AuditLog[];
+        auditLogs?: AuditLog[];
+        total?: number;
+        data?: { items?: AuditLog[]; auditLogs?: AuditLog[]; total?: number };
+      }>('/audit-logs', { params });
+
+      const rootData = data.data || data;
+      const logs = rootData.auditLogs || rootData.items || (Array.isArray(rootData) ? rootData : []);
+      const total = rootData.total !== undefined ? rootData.total : logs.length;
+
+      return {
+        auditLogs: logs,
+        total,
+      };
     },
   },
 

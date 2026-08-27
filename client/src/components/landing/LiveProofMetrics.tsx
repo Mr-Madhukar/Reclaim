@@ -15,7 +15,7 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
           <div className="lg:col-span-6 space-y-6">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">
               <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Track 03 Judging Criteria Alignment</span>
+              <span>Buildathon Judging Criteria Alignment</span>
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">

@@ -44,7 +44,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
   };
 
   const markdownReport = `# Reclaim AI Revenue Recovery Agent — Evaluation Scorecard
-**Razorpay AI Buildathon 2026 · Track 03**
+**Razorpay AI Buildathon 2026**
 *Generated: ${new Date().toISOString()}*
 
 ---
@@ -58,28 +58,6 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
 | **Incentive Budget Spent** | ${formatINR(summary?.totalIncentiveSpent || 0)} | Capped per-case (₹500) | Within Cap |
 | **Net Yield (Post-Incentives)** | ${formatINR(netRecovered)} | Positive ROI | 100% Verified |
 | **Overall Recovery Conversion** | ${rate.toFixed(1)}% | > 60.0% | EXCEEDS |
-| **Stopping Rule Enforcements** | ${stoppingBreakdown.total} Actions Blocked | 0 Harassment Violations | 100% Compliant |
-
----
-
-## 2. Synthetic Ground-Truth Evaluation Benchmark
-
-- **Total Evaluated Cases**: ${evalData.totalEvaluated}
-- **True Positives (TP)**: ${evalData.truePositives} (Correctly recovered)
-- **True Negatives (TN)**: ${evalData.trueNegatives} (Correctly held without spam)
-- **False Positives (FP)**: ${evalData.falsePositives} (Dead account touches avoided)
-- **False Negatives (FN)**: ${evalData.falseNegatives} (Missed recovery opportunities)
-- **Decision Precision**: ${evalData.precision.toFixed(1)}%
-- **Recovery Recall**: ${evalData.recall.toFixed(1)}%
-- **Correct Hold Rate**: ${evalData.correctHoldRate.toFixed(1)}%
-- **Wasted Incentive Rate**: ${evalData.wastedIncentiveRate.toFixed(1)}%
-- **F1 Benchmark Score**: ${evalData.f1Score.toFixed(1)}%
-
----
-
-## 3. Recovery Conversion by Loss Lane
-
-- **Lane A (Payment Degradation)**: ${summary?.laneMetrics?.payment?.rate?.toFixed(1) || '0.0'}% Recovery Rate (${formatINR(summary?.laneMetrics?.payment?.recovered || 0)} recovered)
 - **Lane B (Checkout Drop-off)**: ${summary?.laneMetrics?.checkout?.rate?.toFixed(1) || '0.0'}% Recovery Rate (${formatINR(summary?.laneMetrics?.checkout?.recovered || 0)} recovered)
 - **Lane C (B2B Receivables)**: ${summary?.laneMetrics?.receivable?.rate?.toFixed(1) || '0.0'}% Recovery Rate (${formatINR(summary?.laneMetrics?.receivable?.recovered || 0)} recovered)
 
@@ -122,7 +100,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
 
   const handleDownloadJSON = () => {
     const jsonReport = {
-      benchmark: 'Razorpay AI Buildathon 2026 · Track 03 (AI Revenue Recovery)',
+      benchmark: 'Razorpay AI Buildathon 2026 (AI Revenue Recovery)',
       generatedAt: new Date().toISOString(),
       financialMetrics: {
         totalAtRisk: atRisk,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, ShieldCheck, Cpu, Code2, ArrowUpRight } from 'lucide-react';
+import { ShieldCheck, Cpu, Code2, ArrowUpRight } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -9,8 +9,12 @@ export const Footer: React.FC = () => {
           {/* Col 1: Brand & Tagline */}
           <div className="md:col-span-2 space-y-3">
             <div className="flex items-center space-x-2.5">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 flex items-center justify-center shadow-glow-orange text-white">
-                <Zap className="h-4 w-4" />
+              <div className="h-9 w-9 rounded-xl bg-white shadow-sm border border-cream-300/80 dark:border-surface-700/80 p-1 overflow-hidden flex items-center justify-center">
+                <img
+                  src="/android-chrome-192x192.png"
+                  alt="Reclaim Logo"
+                  className="h-full w-full object-contain rounded-lg"
+                />
               </div>
               <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
                 RECLAIM
@@ -21,7 +25,7 @@ export const Footer: React.FC = () => {
             </div>
             <p className="text-sm text-cream-700 dark:text-slate-400 max-w-md leading-relaxed">
               Find revenue that&apos;s slipping away, and win it back — with a receipt for every rupee.
-              Built for <strong className="text-cream-900 dark:text-slate-200">Razorpay AI Buildathon 2026</strong> (Track 03).
+              Built for <strong className="text-cream-900 dark:text-slate-200">Razorpay AI Buildathon 2026</strong>.
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
               <span className="inline-flex items-center space-x-1 text-[11px] font-mono px-2.5 py-1 rounded-md bg-cream-300/60 dark:bg-surface-800 text-cream-800 dark:text-slate-300 border border-cream-300 dark:border-surface-700">
@@ -89,10 +93,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="pt-6 border-t border-cream-300/60 dark:border-surface-750/60 flex flex-col sm:flex-row items-center justify-between text-xs text-cream-700 dark:text-slate-400">
-          <p>© 2026 Reclaim AI — Built for Razorpay AI Buildathon Track 03.</p>
-          <p className="mt-2 sm:mt-0 font-mono text-[11px] text-cream-700 dark:text-slate-400">
-            Node.js · PostgreSQL · BullMQ · Gemini 2.0 · React + Tailwind
-          </p>
+          <p>© 2026 Reclaim AI — Built for Razorpay AI Buildathon.</p>
         </div>
       </div>
     </footer>

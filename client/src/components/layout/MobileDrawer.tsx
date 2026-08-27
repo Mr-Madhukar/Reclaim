@@ -8,7 +8,6 @@ import {
   History,
   FlaskConical,
   Award,
-  Zap,
   ShieldCheck,
 } from 'lucide-react';
 import { MainTab } from './Navbar';
@@ -61,9 +60,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
         <div>
           {/* Header */}
           <div className="flex items-center justify-between pb-6 border-b border-cream-300 dark:border-surface-750">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-400 flex items-center justify-center text-white">
-                <Zap className="h-4 w-4" />
+            <div className="flex items-center space-x-2.5">
+              <div className="h-8 w-8 rounded-lg bg-white shadow-xs border border-cream-300/80 dark:border-surface-700/80 p-0.5 overflow-hidden flex items-center justify-center">
+                <img
+                  src="/android-chrome-192x192.png"
+                  alt="Reclaim Logo"
+                  className="h-full w-full object-contain rounded-md"
+                />
               </div>
               <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
                 RECLAIM

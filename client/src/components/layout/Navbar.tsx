@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Zap,
   ShieldCheck,
   Sun,
   Moon,
@@ -51,20 +50,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center space-x-3">
           <button
             onClick={() => onSelectTab('landing')}
-            className="flex items-center space-x-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-xl"
+            className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-2xl"
             aria-label="Reclaim — Go to Showcase page"
           >
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 flex items-center justify-center shadow-glow-orange group-hover:scale-105 transition-transform">
-              <Zap className="h-5 w-5 text-white" aria-hidden="true" />
+            <div className="h-10 w-10 rounded-xl bg-white shadow-md shadow-orange-500/15 border border-cream-300/80 dark:border-surface-700/80 p-1 overflow-hidden flex items-center justify-center group-hover:scale-105 transition-all">
+              <img
+                src="/android-chrome-192x192.png"
+                alt="Reclaim Logo"
+                className="h-full w-full object-contain rounded-lg"
+              />
             </div>
-            <div className="text-left">
-              <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
-                RECLAIM
-              </span>
-              <span className="ml-2 text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/30">
-                Track 03
-              </span>
-            </div>
+            <span className="font-black text-xl tracking-tight text-slate-900 dark:text-white">
+              RECLAIM
+            </span>
           </button>
         </div>
 

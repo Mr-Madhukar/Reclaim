@@ -75,7 +75,7 @@ export const EvaluatorScorecard: React.FC = () => {
         <div>
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
             <Award className="h-3.5 w-3.5" />
-            <span>Track 03 Submission Artifact</span>
+            <span>Buildathon Submission Artifact</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Buildathon Evaluation Scorecard
@@ -154,7 +154,7 @@ export const EvaluatorScorecard: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-cream-700 dark:text-slate-300 mt-1">
-                Satisfies all Track 03 requirements: Measured rupee recovery, deterministic stopping rules, bounded actions, and tamper-proof audit trails.
+                Satisfies all buildathon requirements: Measured rupee recovery, deterministic stopping rules, bounded actions, and tamper-proof audit trails.
               </p>
             </div>
           </div>

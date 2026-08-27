@@ -21,10 +21,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-brand-500/10 dark:bg-brand-500/15 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        {/* Brand Logo Display */}
+        <div className="flex justify-center mb-6 animate-fade-in">
+          <div className="h-20 w-20 rounded-2xl bg-white shadow-xl shadow-orange-500/20 border border-cream-300/80 dark:border-surface-700/80 p-2 overflow-hidden hover:scale-105 transition-all flex items-center justify-center">
+            <img
+              src="/android-chrome-192x192.png"
+              alt="Reclaim Brand Logo"
+              className="h-full w-full object-contain rounded-xl"
+            />
+          </div>
+        </div>
+
         {/* Track Badge */}
         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 dark:bg-brand-500/15 border border-brand-500/30 text-brand-600 dark:text-brand-400 text-xs font-semibold uppercase tracking-wider mb-6 animate-fade-in">
           <Sparkles className="h-3.5 w-3.5 text-brand-500 animate-pulse" />
-          <span>Razorpay AI Buildathon 2026 · Track 03</span>
+          <span>Razorpay AI Buildathon</span>
         </div>
 
         {/* Main Headline */}
