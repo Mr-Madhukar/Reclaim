@@ -12,7 +12,7 @@ export interface SendNotificationParams {
   };
   subject?: string;
   message: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SendNotificationResult {
@@ -20,7 +20,7 @@ export interface SendNotificationResult {
   messageId: string;
   channel: 'email' | 'sms' | 'whatsapp';
   deliveredAt: Date;
-  details?: any;
+  details?: unknown;
 }
 
 export class NotificationAdapter {
@@ -69,8 +69,9 @@ export class NotificationAdapter {
             <small style="color: #64748b;">Automated message from Reclaim AI Revenue Recovery</small>
           </div>`,
         });
-      } catch (err: any) {
-        logger.warn({ err: err.message }, 'Failed to send actual email via SMTP, recording simulated success');
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warn({ err: message }, 'Failed to send actual email via SMTP, recording simulated success');
       }
     }
 

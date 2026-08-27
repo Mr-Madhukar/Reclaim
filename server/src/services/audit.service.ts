@@ -96,6 +96,17 @@ export class AuditService {
       prisma.auditLog.count({ where }),
       prisma.auditLog.findMany({
         where,
+        select: {
+          id: true,
+          actor: true,
+          entityType: true,
+          entityId: true,
+          eventType: true,
+          reason: true,
+          beforeJson: true,
+          afterJson: true,
+          createdAt: true,
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,

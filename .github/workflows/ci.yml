@@ -74,6 +74,9 @@ jobs:
       - name: 🔍 Lint Codebase (ESLint)
         run: pnpm run lint:eslint
 
+      - name: 🔒 Security Audit Dependencies
+        run: pnpm audit --audit-level=high || true
+
       - name: 🏷️ Typecheck Codebase (TypeScript)
         run: pnpm run lint:types
 

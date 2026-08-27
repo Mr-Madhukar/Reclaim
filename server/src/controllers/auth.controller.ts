@@ -66,7 +66,7 @@ export class AuthController {
         merchantId: user.merchantId || undefined,
       };
 
-      const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '1h' });
+      const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '15m' });
       const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
       // Log successful login
@@ -105,8 +105,9 @@ export class AuthController {
         },
         accessToken,
       });
-    } catch (err: any) {
-      logger.error({ err: err.message }, 'Login controller error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'Login controller error');
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',
@@ -160,8 +161,9 @@ export class AuthController {
       }
 
       res.json({ user });
-    } catch (err: any) {
-      logger.error({ err: err.message }, 'Get user profile error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'Get user profile error');
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',

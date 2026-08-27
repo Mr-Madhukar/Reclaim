@@ -41,5 +41,5 @@ export const promiseToPaySchema = z.object({
 
 export const webhookPayloadSchema = z.object({
   event: z.string(),
-  payload: z.record(z.any()),
+  payload: z.record(z.unknown()),
 });

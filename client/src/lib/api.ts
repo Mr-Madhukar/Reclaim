@@ -8,6 +8,8 @@ import {
   AuditLog,
   BatchRunResult,
   LaneMetric,
+  EvaluationBenchmark,
+  StoppingRulesBreakdown,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
@@ -42,12 +44,12 @@ apiClient.interceptors.response.use(
 export const api = {
   auth: {
     login: async (email: string, password: string): Promise<AuthResponse> => {
-      const { data } = await apiClient.post<{ data: AuthResponse }>('/auth/login', { email, password });
-      return data.data;
+      const { data } = await apiClient.post<AuthResponse>('/auth/login', { email, password });
+      return data;
     },
     me: async (): Promise<AuthResponse['user']> => {
-      const { data } = await apiClient.get<{ data: { user: AuthResponse['user'] } }>('/auth/me');
-      return data.data.user;
+      const { data } = await apiClient.get<{ user: AuthResponse['user'] }>('/auth/me');
+      return data.user;
     },
     logout: async (): Promise<void> => {
       await apiClient.post('/auth/logout');
@@ -150,9 +152,29 @@ export const api = {
   },
 
   agent: {
-    runBatch: async (options?: { dryRun?: boolean; limit?: number }): Promise<BatchRunResult> => {
-      const { data } = await apiClient.post<{ data: BatchRunResult }>('/agent/run-batch', options);
-      return data.data;
+    runBatch: async (options?: { dryRun?: boolean; limit?: number }): Promise<BatchRunResult & { metrics?: MetricSummary }> => {
+      const { data } = await apiClient.post<BatchRunResult & { metrics?: MetricSummary }>('/agent/run-batch', options);
+      return data;
+    },
+    getEvaluation: async (): Promise<{
+      evaluation: EvaluationBenchmark;
+      stoppingRulesBreakdown: StoppingRulesBreakdown;
+      laneMetrics: MetricSummary['laneMetrics'];
+      totalAtRisk: number;
+      totalRecovered: number;
+      netRecovered: number;
+      totalIncentiveSpent: number;
+    }> => {
+      const { data } = await apiClient.get<{
+        evaluation: EvaluationBenchmark;
+        stoppingRulesBreakdown: StoppingRulesBreakdown;
+        laneMetrics: MetricSummary['laneMetrics'];
+        totalAtRisk: number;
+        totalRecovered: number;
+        netRecovered: number;
+        totalIncentiveSpent: number;
+      }>('/agent/evaluate');
+      return data;
     },
   },
 };

@@ -45,16 +45,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-cream-300/80 dark:border-surface-750/80 transition-colors">
+    <header role="banner" className="sticky top-0 z-40 w-full glass-panel border-b border-cream-300/80 dark:border-surface-750/80 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left: Brand / Logo */}
         <div className="flex items-center space-x-3">
           <button
             onClick={() => onSelectTab('landing')}
-            className="flex items-center space-x-2.5 group focus:outline-none"
+            className="flex items-center space-x-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-xl"
+            aria-label="Reclaim — Go to Showcase page"
           >
             <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 flex items-center justify-center shadow-glow-orange group-hover:scale-105 transition-transform">
-              <Zap className="h-5 w-5 text-white" />
+              <Zap className="h-5 w-5 text-white" aria-hidden="true" />
             </div>
             <div className="text-left">
               <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
@@ -68,9 +69,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Desktop Navigation Tabs */}
-        <nav className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-surface-900/80 p-1 rounded-xl border border-cream-300/80 dark:border-surface-750/80">
+        <nav role="navigation" aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-surface-900/80 p-1 rounded-xl border border-cream-300/80 dark:border-surface-750/80">
           <button
             onClick={() => onSelectTab('landing')}
+            aria-current={activeTab === 'landing' ? 'page' : undefined}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'landing'
                 ? 'bg-brand-500 text-white shadow-sm'
@@ -83,6 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onSelectTab('overview')}
+            aria-current={activeTab === 'overview' ? 'page' : undefined}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'overview'
                 ? 'bg-brand-500 text-white shadow-sm'
@@ -95,6 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onSelectTab('cases')}
+            aria-current={activeTab === 'cases' ? 'page' : undefined}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'cases'
                 ? 'bg-brand-500 text-white shadow-sm'
@@ -107,6 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onSelectTab('sandbox')}
+            aria-current={activeTab === 'sandbox' ? 'page' : undefined}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'sandbox'
                 ? 'bg-brand-500 text-white shadow-sm'
@@ -119,6 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onSelectTab('policies')}
+            aria-current={activeTab === 'policies' ? 'page' : undefined}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'policies'
                 ? 'bg-brand-500 text-white shadow-sm'
@@ -131,6 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onSelectTab('audit')}
+            aria-current={activeTab === 'audit' ? 'page' : undefined}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'audit'
                 ? 'bg-brand-500 text-white shadow-sm'
@@ -143,6 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onSelectTab('scorecard')}
+            aria-current={activeTab === 'scorecard' ? 'page' : undefined}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeTab === 'scorecard'
                 ? 'bg-brand-500 text-white shadow-sm'
@@ -180,6 +188,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative">
             <button
               onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+              aria-expanded={roleDropdownOpen}
+              aria-haspopup="true"
+              aria-label={`Switch role, current role: ${user?.role || 'ADMIN'}`}
               className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-xs font-medium text-cream-800 dark:text-slate-200 hover:border-brand-500 transition-colors"
             >
               <UserCheck className="h-3.5 w-3.5 text-brand-500" />

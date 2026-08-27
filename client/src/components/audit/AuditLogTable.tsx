@@ -46,12 +46,12 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({ logs, isLoading, o
         <table className="w-full text-left text-xs">
           <thead className="bg-cream-300/40 dark:bg-surface-850/80 text-cream-700 dark:text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-cream-300 dark:border-surface-750">
             <tr>
-              <th className="py-4 px-6">Timestamp</th>
-              <th className="py-4 px-4">Actor</th>
-              <th className="py-4 px-4">Event Type</th>
-              <th className="py-4 px-4">Entity</th>
-              <th className="py-4 px-4">Reason / Notes</th>
-              <th className="py-4 px-6 text-right">Receipt Diff</th>
+              <th scope="col" className="py-4 px-6">Timestamp</th>
+              <th scope="col" className="py-4 px-4">Actor</th>
+              <th scope="col" className="py-4 px-4">Event Type</th>
+              <th scope="col" className="py-4 px-4">Entity</th>
+              <th scope="col" className="py-4 px-4">Reason / Notes</th>
+              <th scope="col" className="py-4 px-6 text-right">Receipt Diff</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-cream-300/60 dark:divide-surface-750/60 font-mono">

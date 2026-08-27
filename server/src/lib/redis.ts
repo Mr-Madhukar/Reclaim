@@ -5,6 +5,8 @@ import { logger } from './logger';
 export const redisConnection = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: null,
   lazyConnect: true,
+  enableReadyCheck: true,
+  tls: env.REDIS_URL.startsWith('rediss://') ? {} : undefined,
   retryStrategy(times) {
     if (env.NODE_ENV === 'test') return null;
     return Math.min(times * 100, 3000);
@@ -13,6 +15,6 @@ export const redisConnection = new Redis(env.REDIS_URL, {
 
 redisConnection.on('error', (err) => {
   if (env.NODE_ENV !== 'test') {
-    logger.warn({ err: err.message }, 'Redis connection warning (background queue features will queue or retry)');
+    logger.warn({ err: err.message }, 'Redis connection warning (background queue/cache will use memory fallback or retry)');
   }
 });

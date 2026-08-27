@@ -62,14 +62,14 @@ export const CaseTable: React.FC<CaseTableProps> = ({
           <table className="w-full text-left text-xs">
             <thead className="bg-cream-300/40 dark:bg-surface-850/80 text-cream-700 dark:text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-cream-300 dark:border-surface-750">
               <tr>
-                <th className="py-4 px-6">Case / Customer</th>
-                <th className="py-4 px-4">Loss Lane</th>
-                <th className="py-4 px-4">Amount</th>
-                <th className="py-4 px-4">Root Cause Diagnosis</th>
-                <th className="py-4 px-4">Status</th>
-                <th className="py-4 px-4 text-center">Actions</th>
-                <th className="py-4 px-4">Opened</th>
-                <th className="py-4 px-6 text-right">Inspect</th>
+                <th scope="col" className="py-4 px-6">Case / Customer</th>
+                <th scope="col" className="py-4 px-4">Loss Lane</th>
+                <th scope="col" className="py-4 px-4">Amount</th>
+                <th scope="col" className="py-4 px-4">Root Cause Diagnosis</th>
+                <th scope="col" className="py-4 px-4">Status</th>
+                <th scope="col" className="py-4 px-4 text-center">Actions</th>
+                <th scope="col" className="py-4 px-4">Opened</th>
+                <th scope="col" className="py-4 px-6 text-right">Inspect</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-cream-300/60 dark:divide-surface-750/60">
@@ -81,7 +81,11 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                   <tr
                     key={kase.id}
                     onClick={() => onSelectCase(kase)}
-                    className="hover:bg-cream-200/80 dark:hover:bg-surface-800/80 transition-colors cursor-pointer group"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectCase(kase); } }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`View case for ${kase.customer.name}, ${formatINR(kase.amount)}, status: ${getStatusBadgeProps(kase.status).label}`}
+                    className="hover:bg-cream-200/80 dark:hover:bg-surface-800/80 transition-colors cursor-pointer group focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-inset"
                   >
                     {/* Customer info */}
                     <td className="py-4 px-6">
@@ -122,7 +126,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                       <span
                         className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium border ${statusBadge.bgClass} ${statusBadge.textClass} ${statusBadge.borderClass}`}
                       >
-                        <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dotClass}`}></span>
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusBadge.dotClass}`} aria-hidden="true"></span>
                         <span>{statusBadge.label}</span>
                       </span>
                     </td>
@@ -139,8 +143,11 @@ export const CaseTable: React.FC<CaseTableProps> = ({
 
                     {/* Inspect button */}
                     <td className="py-4 px-6 text-right">
-                      <button className="p-1.5 rounded-lg bg-cream-200 dark:bg-surface-750 text-brand-500 group-hover:bg-brand-500 group-hover:text-white transition-all">
-                        <ChevronRight className="h-4 w-4" />
+                      <button
+                        aria-label={`Inspect case for ${kase.customer.name}`}
+                        className="p-1.5 rounded-lg bg-cream-200 dark:bg-surface-750 text-brand-500 group-hover:bg-brand-500 group-hover:text-white transition-all"
+                      >
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </td>
                   </tr>
@@ -206,7 +213,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
       </div>
 
       {/* Pagination Bar */}
-      <div className="flex items-center justify-between px-4 py-3 glass-card rounded-2xl border-cream-300 dark:border-surface-750 text-xs text-cream-700 dark:text-slate-400">
+      <nav aria-label="Cases pagination" className="flex items-center justify-between px-4 py-3 glass-card rounded-2xl border-cream-300 dark:border-surface-750 text-xs text-cream-700 dark:text-slate-400">
         <div>
           Showing page <strong>{page}</strong> of <strong>{totalPages}</strong> ({total} total cases)
         </div>
@@ -226,7 +233,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
             Next
           </button>
         </div>
-      </div>
+      </nav>
     </div>
   );
 };

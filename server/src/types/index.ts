@@ -45,6 +45,31 @@ export interface DiagnosisResult {
   };
 }
 
+export interface StoppingRulesBreakdown {
+  maxAttempts: number;
+  customerOptOut: number;
+  cooldownActive: number;
+  contactHours: number;
+  monetaryCeiling: number;
+  dailyCap: number;
+  total: number;
+}
+
+export interface EvaluationBenchmark {
+  totalEvaluated: number;
+  shouldRecoverCount: number;
+  shouldNotRecoverCount: number;
+  truePositives: number;
+  falsePositives: number;
+  trueNegatives: number;
+  falseNegatives: number;
+  recall: number;
+  precision: number;
+  correctHoldRate: number;
+  wastedIncentiveRate: number;
+  f1Score: number;
+}
+
 export interface MetricSummary {
   totalAtRisk: number;
   totalRecovered: number;
@@ -54,6 +79,8 @@ export interface MetricSummary {
   activeCasesCount: number;
   recoveredCasesCount: number;
   stoppingRuleTriggersCount: number;
+  stoppingRulesBreakdown?: StoppingRulesBreakdown;
+  evaluation?: EvaluationBenchmark;
   laneMetrics: {
     payment: { atRisk: number; recovered: number; rate: number; caseCount: number };
     checkout: { atRisk: number; recovered: number; rate: number; caseCount: number };

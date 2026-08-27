@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import crypto from 'crypto';
 import { env } from './config/env';
 import { logger } from './lib/logger';
 
@@ -9,13 +11,35 @@ import { apiRouter } from './routes';
 
 export const app = express();
 
-// Security headers
+// Response compression (gzip/deflate for payloads > 1KB)
+app.use(
+  compression({
+    threshold: 1024,
+    filter: (req: Request, res: Response) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+  })
+);
+
+// Security headers (Helmet)
 app.use(
   helmet({
     contentSecurityPolicy: env.NODE_ENV === 'production' ? undefined : false,
     crossOriginEmbedderPolicy: false,
   })
 );
+
+// Additional security headers
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 
 // CORS configuration
 app.use(
@@ -30,10 +54,19 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Request ID correlation — thread a unique ID through each request for tracing
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = (req.headers['x-request-id'] as string) || crypto.randomUUID();
+  res.setHeader('X-Request-Id', requestId);
+  (req as Request & { requestId: string }).requestId = requestId;
+  next();
+});
+
 // Request logging middleware
 app.use((req: Request, _res: Response, next: NextFunction) => {
   if (req.path !== '/health') {
-    logger.debug({ method: req.method, path: req.path }, 'Incoming HTTP Request');
+    const requestId = (req as Request & { requestId?: string }).requestId;
+    logger.debug({ method: req.method, path: req.path, requestId }, 'Incoming HTTP Request');
   }
   next();
 });

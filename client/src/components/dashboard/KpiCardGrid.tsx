@@ -37,13 +37,13 @@ export const KpiCardGrid: React.FC<KpiCardGridProps> = ({ summary, isLoading }) 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 animate-slide-up">
       {/* KPI 1: ₹ Total At Risk */}
-      <div className="glass-card glass-card-hover rounded-3xl p-6 border-cream-300 dark:border-surface-750">
+      <div aria-label={`Total at risk: ${formatINR(atRisk)}, ${activeCases} active cases`} className="glass-card glass-card-hover rounded-3xl p-6 border-cream-300 dark:border-surface-750">
         <div className="flex items-center justify-between text-cream-700 dark:text-slate-400 mb-2">
           <span className="text-xs uppercase tracking-wider font-bold">
             ₹ Total at Risk
           </span>
           <div className="p-2 rounded-xl bg-risk/10 text-risk dark:text-risk-light">
-            <Activity className="h-4 w-4" />
+            <Activity className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
         <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900 dark:text-white">
@@ -58,13 +58,13 @@ export const KpiCardGrid: React.FC<KpiCardGridProps> = ({ summary, isLoading }) 
       </div>
 
       {/* KPI 2: ₹ Measured Recovered */}
-      <div className="glass-card glass-card-hover rounded-3xl p-6 border-emerald-500/30">
+      <div aria-label={`Measured recovered: ${formatINR(recovered)}, ${recoveredCases} cases recovered`} className="glass-card glass-card-hover rounded-3xl p-6 border-emerald-500/30">
         <div className="flex items-center justify-between text-cream-700 dark:text-slate-400 mb-2">
           <span className="text-xs uppercase tracking-wider font-bold text-emerald-700 dark:text-emerald-400">
             ₹ Measured Recovered
           </span>
           <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Coins className="h-4 w-4" />
+            <Coins className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
         <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
@@ -79,13 +79,13 @@ export const KpiCardGrid: React.FC<KpiCardGridProps> = ({ summary, isLoading }) 
       </div>
 
       {/* KPI 3: Net Recovery Rate % */}
-      <div className="glass-card glass-card-hover rounded-3xl p-6 border-brand-500/30">
+      <div aria-label={`Recovery rate: ${recoveryRate.toFixed(1)} percent across 3 loss lanes`} className="glass-card glass-card-hover rounded-3xl p-6 border-brand-500/30">
         <div className="flex items-center justify-between text-cream-700 dark:text-slate-400 mb-2">
           <span className="text-xs uppercase tracking-wider font-bold text-brand-600 dark:text-brand-400">
             Recovery Rate
           </span>
           <div className="p-2 rounded-xl bg-brand-500/10 text-brand-500">
-            <Zap className="h-4 w-4" />
+            <Zap className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
         <div className="text-2xl sm:text-3xl font-extrabold font-mono text-brand-600 dark:text-brand-400">
@@ -100,13 +100,13 @@ export const KpiCardGrid: React.FC<KpiCardGridProps> = ({ summary, isLoading }) 
       </div>
 
       {/* KPI 4: Policy Guardrail Stops */}
-      <div className="glass-card glass-card-hover rounded-3xl p-6 border-amber-500/30">
+      <div aria-label={`Guardrail stops: ${guardrailStops} compliance stops triggered`} className="glass-card glass-card-hover rounded-3xl p-6 border-amber-500/30">
         <div className="flex items-center justify-between text-cream-700 dark:text-slate-400 mb-2">
           <span className="text-xs uppercase tracking-wider font-bold text-amber-700 dark:text-amber-400">
             Guardrail Stops
           </span>
           <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <ShieldCheck className="h-4 w-4" />
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
         <div className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-700 dark:text-amber-400">

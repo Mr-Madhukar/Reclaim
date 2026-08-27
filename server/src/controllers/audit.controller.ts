@@ -17,8 +17,9 @@ export class AuditController {
       });
 
       res.json(result);
-    } catch (err: any) {
-      logger.error({ err: err.message }, 'List audit logs error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'List audit logs error');
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',

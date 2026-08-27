@@ -40,8 +40,9 @@ export class RazorpayAdapter {
         Buffer.from(signature, 'utf8'),
         Buffer.from(expectedSignature, 'utf8')
       );
-    } catch (err: any) {
-      logger.error({ err: err.message }, 'Failed to verify Razorpay webhook signature');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'Failed to verify Razorpay webhook signature');
       return false;
     }
   }

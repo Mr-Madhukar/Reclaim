@@ -13,8 +13,10 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({ filters, onChange, onR
     <div className="glass-card rounded-2xl p-4 border-cream-300 dark:border-surface-750 mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
       {/* Search Input */}
       <div className="relative flex-1">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cream-600 dark:text-slate-400" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cream-600 dark:text-slate-400" aria-hidden="true" />
+        <label htmlFor="case-search" className="sr-only">Search cases by customer name, email, or source ID</label>
         <input
+          id="case-search"
           type="text"
           value={filters.search || ''}
           onChange={(e) => onChange({ ...filters, search: e.target.value, page: 1 })}
@@ -27,7 +29,7 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({ filters, onChange, onR
       <div className="flex flex-wrap items-center gap-2.5">
         {/* Lane Filter */}
         <div className="flex items-center space-x-1">
-          <Filter className="h-3.5 w-3.5 text-brand-500" />
+          <Filter className="h-3.5 w-3.5 text-brand-500" aria-hidden="true" />
           <select
             aria-label="Filter cases by recovery lane"
             value={filters.lane || 'ALL'}
@@ -61,9 +63,10 @@ export const CaseFilters: React.FC<CaseFiltersProps> = ({ filters, onChange, onR
         <button
           onClick={onReset}
           title="Reset Filters"
+          aria-label="Reset all filters"
           className="p-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-cream-700 dark:text-slate-300 hover:text-brand-500 hover:border-brand-500/50 transition-colors"
         >
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </div>

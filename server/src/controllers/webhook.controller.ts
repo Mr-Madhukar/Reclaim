@@ -4,6 +4,7 @@ import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { auditService } from '../services/audit.service';
 import { logger } from '../lib/logger';
+import { cacheService } from '../lib/cache';
 import { Lane, PaymentStatus, InvoiceStatus } from '@prisma/client';
 
 export class WebhookController {
@@ -101,6 +102,8 @@ export class WebhookController {
               afterJson: { event, paymentId: payment.id, amount: Number(payment.amount) / 100 },
               reason: `Recovery case opened via Razorpay webhook: ${payment.error_description || 'Payment Failed'}`,
             });
+
+            await cacheService.invalidateMetrics(merchant.id);
           }
         }
       } else if (event === 'payment.captured' || event === 'order.paid') {
@@ -109,11 +112,13 @@ export class WebhookController {
           // Find matching payment attempt or order
           const paymentAttempt = await prisma.paymentAttempt.findFirst({
             where: { orderId: payment.order_id || payment.id },
+            select: { id: true },
           });
 
           if (paymentAttempt) {
             const recoveryCase = await prisma.recoveryCase.findFirst({
               where: { sourceRefId: paymentAttempt.id, status: 'OPEN' },
+              select: { id: true, amount: true, merchantId: true },
             });
 
             if (recoveryCase) {
@@ -139,16 +144,21 @@ export class WebhookController {
                   tx
                 );
               });
+
+              await cacheService.invalidateMetrics(recoveryCase.merchantId || undefined);
             }
           }
         }
       } else if (event === 'invoice.overdue') {
         const invoiceData = payload.invoice?.entity;
         if (invoiceData) {
-          const merchant = await prisma.merchant.findFirst();
+          const merchant = await prisma.merchant.findFirst({
+            select: { id: true },
+          });
           if (merchant) {
             let customer = await prisma.customer.findFirst({
               where: { email: invoiceData.customer_email || 'b2b@example.com' },
+              select: { id: true, optedOut: true },
             });
 
             if (!customer) {
@@ -159,6 +169,7 @@ export class WebhookController {
                   email: invoiceData.customer_email || `b2b_${Date.now()}@example.com`,
                   phone: invoiceData.customer_contact,
                 },
+                select: { id: true, optedOut: true },
               });
             }
 
@@ -193,6 +204,8 @@ export class WebhookController {
               afterJson: { event, invoiceId: invoice.id, amountDue: Number(invoice.amountDue) },
               reason: `Receivables case created for overdue invoice ${invoice.invoiceNumber}`,
             });
+
+            await cacheService.invalidateMetrics(merchant.id);
           }
         }
       }

@@ -16,13 +16,31 @@ export class AgentController {
         processedCount: batchResult.processedCount,
         results: batchResult.results,
         metrics,
+        evaluation: metrics.evaluation,
       });
-    } catch (err: any) {
-      logger.error({ err: err.message }, 'Agent batch run controller error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'Agent batch run controller error');
       res.status(500).json({
         error: {
           code: 'BATCH_RUN_FAILED',
-          message: err.message || 'Failed to complete agent batch run',
+          message: message || 'Failed to complete agent batch run',
+        },
+      });
+    }
+  }
+
+  async getEvaluation(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const benchmark = await caseService.getEvaluationBenchmark(req.user?.merchantId);
+      res.json(benchmark);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'Get evaluation benchmark error');
+      res.status(500).json({
+        error: {
+          code: 'EVALUATION_ERROR',
+          message: 'Failed to compute evaluation benchmark',
         },
       });
     }

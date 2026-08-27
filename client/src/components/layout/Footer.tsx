@@ -3,7 +3,7 @@ import { Zap, ShieldCheck, Cpu, Code2, ArrowUpRight } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full border-t border-cream-300/80 dark:border-surface-750/80 bg-cream-200/40 dark:bg-surface-900/40 backdrop-blur-md py-12 transition-colors">
+    <footer role="contentinfo" className="w-full border-t border-cream-300/80 dark:border-surface-750/80 bg-cream-200/40 dark:bg-surface-900/40 backdrop-blur-md py-12 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Col 1: Brand & Tagline */}

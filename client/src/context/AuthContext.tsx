@@ -23,8 +23,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!storedToken) {
           const authData = await api.auth.login(DEMO_CREDENTIALS.ADMIN.email, DEMO_CREDENTIALS.ADMIN.pass);
           if (mounted) {
-            localStorage.setItem('reclaim_auth_token', authData.token);
-            setToken(authData.token);
+            localStorage.setItem('reclaim_auth_token', authData.accessToken);
+            setToken(authData.accessToken);
             setUser(authData.user);
           }
         } else {
@@ -37,8 +37,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const authData = await api.auth.login(DEMO_CREDENTIALS.ADMIN.email, DEMO_CREDENTIALS.ADMIN.pass);
           if (mounted) {
-            localStorage.setItem('reclaim_auth_token', authData.token);
-            setToken(authData.token);
+            localStorage.setItem('reclaim_auth_token', authData.accessToken);
+            setToken(authData.accessToken);
             setUser(authData.user);
           }
         } catch (err) {
@@ -62,8 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const authData = await api.auth.login(email, password);
-      localStorage.setItem('reclaim_auth_token', authData.token);
-      setToken(authData.token);
+      localStorage.setItem('reclaim_auth_token', authData.accessToken);
+      setToken(authData.accessToken);
       setUser(authData.user);
     } finally {
       setIsLoading(false);

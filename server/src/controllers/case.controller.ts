@@ -3,6 +3,7 @@ import { caseService } from '../services/case.service';
 import { auditService } from '../services/audit.service';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
+import { cacheService } from '../lib/cache';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { CaseStatus, Lane } from '@prisma/client';
 
@@ -60,16 +61,28 @@ export class CaseController {
         return;
       }
 
-      // Fetch case audit events
+      // Fetch case audit events with lean field selection
+      const actionIds = (kase.actions || []).map((a: { id: string }) => a.id);
       const auditTrail = await prisma.auditLog.findMany({
         where: {
           OR: [
             { entityId: id },
             {
               entityType: 'RecoveryAction',
-              entityId: { in: kase.actions.map((a) => a.id) },
+              entityId: { in: actionIds },
             },
           ],
+        },
+        select: {
+          id: true,
+          actor: true,
+          entityType: true,
+          entityId: true,
+          eventType: true,
+          reason: true,
+          beforeJson: true,
+          afterJson: true,
+          createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -94,7 +107,10 @@ export class CaseController {
     try {
       const { id } = req.params;
 
-      const kase = await caseService.getCaseById(id);
+      const kase = await prisma.recoveryCase.findUnique({
+        where: { id },
+        select: { id: true, merchantId: true },
+      });
       if (!kase) {
         res.status(404).json({
           error: {
@@ -174,7 +190,10 @@ export class CaseController {
       const { id } = req.params;
       const { promisedAmount, promisedDate } = req.body;
 
-      const kase = await caseService.getCaseById(id);
+      const kase = await prisma.recoveryCase.findUnique({
+        where: { id },
+        select: { id: true, merchantId: true },
+      });
       if (!kase) {
         res.status(404).json({
           error: {
@@ -214,6 +233,9 @@ export class CaseController {
         return p;
       });
 
+      // Invalidate cached metrics on promise to pay
+      await cacheService.invalidateMetrics(kase.merchantId || undefined);
+
       res.json({
         message: 'Promise to pay recorded successfully',
         promiseToPay: promise,
@@ -237,7 +259,13 @@ export class CaseController {
 
       const kase = await prisma.recoveryCase.findUnique({
         where: { id },
-        include: { customer: true },
+        select: {
+          id: true,
+          customerId: true,
+          amount: true,
+          status: true,
+          merchantId: true,
+        },
       });
 
       if (!kase) {
@@ -380,7 +408,11 @@ export class CaseController {
         });
       } else {
         res.status(400).json({ error: { code: 'INVALID_ACTION', message: `Unknown customer action: ${action}` } });
+        return;
       }
+
+      // Invalidate metrics cache on successful customer action
+      await cacheService.invalidateMetrics(kase.merchantId || undefined);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process customer action';
       logger.error({ err: errorMessage, caseId: req.params.id }, 'Customer action error');

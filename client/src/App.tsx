@@ -11,17 +11,40 @@ import { AuditView } from './components/audit/AuditView';
 import { EvaluatorScorecard } from './components/scorecard/EvaluatorScorecard';
 import { LoginModal } from './components/auth/LoginModal';
 
+/** Map tab keys to human-readable page titles for screen reader announcements */
+const TAB_TITLES: Record<MainTab, string> = {
+  landing: 'Showcase',
+  overview: 'Revenue Recovery Command Center',
+  cases: 'Cases Workbench',
+  sandbox: 'Sandbox Simulator',
+  policies: 'Policy Configuration',
+  audit: 'Audit Trail',
+  scorecard: 'Evaluator Scorecard',
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('landing');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
 
+  const handleTabChange = (tab: MainTab) => {
+    setActiveTab(tab);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-cream-100 dark:bg-surface-950 text-cream-900 dark:text-slate-100 selection:bg-brand-500 selection:text-white transition-colors">
+      {/* Skip to main content — accessibility best practice */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-brand-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:shadow-lg focus:outline-none"
+      >
+        Skip to main content
+      </a>
+
       {/* Top Sticky Header */}
       <Navbar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleTabChange}
         onOpenMobileMenu={() => setMobileMenuOpen(true)}
         onOpenLoginModal={() => setLoginModalOpen(true)}
       />
@@ -31,12 +54,18 @@ export default function App() {
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleTabChange}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        {activeTab === 'landing' && <LandingPage onSelectTab={setActiveTab} />}
+      {/* Main Content Area with landmark role and accessible id */}
+      <main
+        id="main-content"
+        role="main"
+        aria-label={TAB_TITLES[activeTab]}
+        tabIndex={-1}
+        className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full focus:outline-none"
+      >
+        {activeTab === 'landing' && <LandingPage onSelectTab={handleTabChange} />}
         {activeTab === 'overview' && <DashboardOverview />}
         {activeTab === 'cases' && <CasesView />}
         {activeTab === 'sandbox' && <SandboxView />}
@@ -44,6 +73,11 @@ export default function App() {
         {activeTab === 'audit' && <AuditView />}
         {activeTab === 'scorecard' && <EvaluatorScorecard />}
       </main>
+
+      {/* Screen reader live region for page navigation announcements */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {`Viewing ${TAB_TITLES[activeTab]} page`}
+      </div>
 
       {/* Footer */}
       <Footer />
@@ -56,3 +90,4 @@ export default function App() {
     </div>
   );
 }
+

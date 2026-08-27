@@ -53,10 +53,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="login-modal-title"
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+    >
       <div
         className="fixed inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       <div className="relative w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-cream-300 dark:border-surface-750 z-10 space-y-6 animate-slide-up">
@@ -66,7 +73,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               <Zap className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+              <h3 id="login-modal-title" className="text-lg font-extrabold text-slate-900 dark:text-white">
                 Reclaim Auth
               </h3>
               <p className="text-xs text-cream-600 dark:text-slate-400">
@@ -76,9 +83,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close login modal"
             className="p-1.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 

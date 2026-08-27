@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { auditService } from '../services/audit.service';
 import { logger } from '../lib/logger';
+import { cacheService } from '../lib/cache';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class PolicyController {
@@ -14,8 +15,9 @@ export class PolicyController {
       });
 
       res.json({ policies });
-    } catch (err: any) {
-      logger.error({ err: err.message }, 'Get policy configs error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'Get policy configs error');
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',
@@ -90,16 +92,20 @@ export class PolicyController {
         return result;
       });
 
+      // Invalidate metrics cache as policy changes may affect caps and thresholds
+      await cacheService.invalidateMetrics(existing.merchantId || undefined);
+
       res.json({
         message: 'Policy configuration updated successfully',
         policy: updated,
       });
-    } catch (err: any) {
-      logger.error({ err: err.message, policyId: req.params.id }, 'Update policy config error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message, policyId: req.params.id }, 'Update policy config error');
       res.status(500).json({
         error: {
           code: 'UPDATE_FAILED',
-          message: err.message || 'Failed to update policy configuration',
+          message: message || 'Failed to update policy configuration',
         },
       });
     }
