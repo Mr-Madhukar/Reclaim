@@ -13,6 +13,8 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/reclaim_dev?schema=public'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  UPSTASH_REDIS_REST_URL: z.string().optional().default(''),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(''),
 
   JWT_SECRET: z.string().default('super-secret-reclaim-access-jwt-key-2026-secure'),
   JWT_REFRESH_SECRET: z.string().default('super-secret-reclaim-refresh-jwt-key-2026-secure'),
@@ -28,6 +30,12 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().default('reclaim_demo@ethereal.email'),
   SMTP_PASS: z.string().default('reclaim_demo_password'),
+
+  // Resend Email (API)
+  RESEND_API_KEY: z.string().optional().default(''),
+  RESEND_FROM_EMAIL: z.string().default('Reclaim Recovery <recovery@mrmadhukar.in>'),
+
+
 });
 
 export const env = envSchema.parse(process.env);

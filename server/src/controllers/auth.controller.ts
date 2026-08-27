@@ -66,7 +66,7 @@ export class AuthController {
         merchantId: user.merchantId || undefined,
       };
 
-      const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '15m' });
+      const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
       const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
       // Log successful login
@@ -85,7 +85,7 @@ export class AuthController {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 1000, // 1 hour
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
       });
 
       res.cookie('refreshToken', refreshToken, {
@@ -210,13 +210,13 @@ export class AuthController {
         merchantId: user.merchantId || undefined,
       };
 
-      const newAccessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '1h' });
+      const newAccessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
 
       res.cookie('accessToken', newAccessToken, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 1000,
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
       res.json({ accessToken: newAccessToken });

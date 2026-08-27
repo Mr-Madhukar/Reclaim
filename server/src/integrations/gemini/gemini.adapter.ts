@@ -42,17 +42,20 @@ export class GeminiAdapter {
     simulateOutage?: boolean;
   }): Promise<{
     result: LLMDiagnosisOutput;
-    modelUsed: 'gemini-2.0-flash' | 'fallback_template';
+    modelUsed: 'gemini-2.0-flash' | 'fallback_template' | string;
     fallbackUsed: boolean;
   }> {
-    if (params.simulateOutage) {
-      logger.warn('[Chaos Mode] Simulated Gemini API 429 rate limit / outage; activating self-healing static fallback');
+    if (params.simulateOutage || env.NODE_ENV === 'test') {
+      if (params.simulateOutage) {
+        logger.warn('[Chaos Mode] Simulated Gemini API 429 rate limit / outage; activating self-healing static fallback');
+      }
       return {
         result: this.getStaticFallback(params),
         modelUsed: 'fallback_template',
         fallbackUsed: true,
       };
     }
+
 
     if (!this.genAI || !env.GEMINI_API_KEY) {
       logger.info('Gemini API key not configured, using static fallback template');
@@ -172,9 +175,10 @@ CRITICAL RULES:
       const parsed = JSON.parse(text) as LLMDiagnosisOutput;
       return {
         result: parsed,
-        modelUsed: 'gemini-2.0-flash',
+        modelUsed: env.GEMINI_MODEL || 'gemini-2.0-flash',
         fallbackUsed: false,
       };
+
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       logger.warn({ err: errorMessage }, 'Gemini API call failed, falling back to static template');

@@ -8,7 +8,8 @@ export class AgentController {
     try {
       logger.info({ userId: req.user?.userId }, 'Starting autonomous recovery batch run via API');
 
-      const batchResult = await caseService.runBatch(req.user?.merchantId);
+      const { limit } = req.body || {};
+      const batchResult = await caseService.runBatch(req.user?.merchantId, { limit });
       const metrics = await caseService.getMetrics(req.user?.merchantId);
 
       res.json({

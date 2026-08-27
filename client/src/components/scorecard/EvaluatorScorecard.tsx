@@ -24,6 +24,7 @@ export const EvaluatorScorecard: React.FC = () => {
   const [exportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [isRunningEvaluation, setIsRunningEvaluation] = useState<boolean>(false);
   const [batchResult, setBatchResult] = useState<BatchRunResult | null>(null);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
 
   const atRisk = summary?.totalAtRisk || 184650;
   const recovered = summary?.totalRecovered || 142800;
@@ -57,12 +58,14 @@ export const EvaluatorScorecard: React.FC = () => {
 
   const handleRunEvaluation = async () => {
     setIsRunningEvaluation(true);
+    setEvaluationError(null);
     try {
       const res = await api.agent.runBatch({ dryRun: false });
       setBatchResult(res);
       await refetch();
     } catch (err) {
       console.error('Failed to run batch evaluation', err);
+      setEvaluationError(err instanceof Error ? err.message : 'Failed to run batch evaluation');
     } finally {
       setIsRunningEvaluation(false);
     }
@@ -113,6 +116,25 @@ export const EvaluatorScorecard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Evaluation Error Banner */}
+      {evaluationError && (
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-between animate-slide-up">
+          <div className="flex items-center space-x-3 text-xs text-red-600 dark:text-red-400">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <div>
+              <span className="font-bold">Evaluation Run Error</span>
+              <p className="mt-0.5">{evaluationError}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setEvaluationError(null)}
+            className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Batch Execution Alert Banner if executed */}
       {batchResult && (

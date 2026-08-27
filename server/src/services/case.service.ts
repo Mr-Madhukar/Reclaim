@@ -350,32 +350,39 @@ export class CaseService {
   /**
    * Trigger batch run across all open cases
    */
-  async runBatch(merchantId?: string, options?: { nowOverride?: Date }) {
+  async runBatch(merchantId?: string, options?: { nowOverride?: Date; limit?: number; dryRun?: boolean }) {
     const where: Prisma.RecoveryCaseWhereInput = { status: 'OPEN' };
     if (merchantId) where.merchantId = merchantId;
 
     const openCases = await prisma.recoveryCase.findMany({
       where,
       select: { id: true },
+      take: options?.limit,
     });
 
     logger.info({ totalCases: openCases.length }, '[Case Service] Starting agent batch execution');
 
+    const CHUNK_SIZE = 5;
     const results = [];
-    for (const c of openCases) {
-      try {
-        const res = await this.processCase(c.id, options);
-        results.push(res);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        logger.error({ caseId: c.id, err: errorMessage }, 'Error processing case in batch');
-        results.push({
-          caseId: c.id,
-          status: 'OPEN' as CaseStatus,
-          outcome: 'error',
-          reason: errorMessage,
-        });
-      }
+    for (let i = 0; i < openCases.length; i += CHUNK_SIZE) {
+      const chunk = openCases.slice(i, i + CHUNK_SIZE);
+      const chunkResults = await Promise.all(
+        chunk.map(async (c) => {
+          try {
+            return await this.processCase(c.id, options);
+          } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            logger.error({ caseId: c.id, err: errorMessage }, 'Error processing case in batch');
+            return {
+              caseId: c.id,
+              status: 'OPEN' as CaseStatus,
+              outcome: 'error',
+              reason: errorMessage,
+            };
+          }
+        })
+      );
+      results.push(...chunkResults);
     }
 
     // Invalidate cached metrics after batch execution

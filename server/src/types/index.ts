@@ -37,7 +37,7 @@ export interface DiagnosisResult {
   confidence: number;
   explanation: string;
   recommendedAction: BoundedActionType;
-  modelUsed: 'rules' | 'gemini-2.0-flash' | 'fallback_template';
+  modelUsed: 'rules' | 'gemini-2.0-flash' | 'fallback_template' | string;
   customerCopy?: {
     channel: 'email' | 'sms' | 'whatsapp';
     subject?: string;

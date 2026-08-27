@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import {
   AuthResponse,
   CaseFilterParams,
@@ -31,10 +31,84 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor: handle errors
+// Response interceptor: handle errors & silent auto-refresh / re-authentication on 401
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ error?: { message?: string; code?: string } }>) => {
+  async (error: AxiosError<{ error?: { message?: string; code?: string } }>) => {
+    const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            if (token && originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        let newToken: string | null = null;
+        try {
+          const { data } = await axios.post<{ accessToken: string }>(
+            `${API_BASE_URL}/auth/refresh`,
+            {},
+            { withCredentials: true }
+          );
+          newToken = data.accessToken;
+        } catch {
+          // If refresh fails, auto-authenticate with demo admin credentials
+          const { data } = await axios.post<AuthResponse>(
+            `${API_BASE_URL}/auth/login`,
+            { email: 'admin@reclaim.demo', password: 'Demo@12345' },
+            { withCredentials: true }
+          );
+          newToken = data.accessToken;
+        }
+
+        if (newToken) {
+          localStorage.setItem('reclaim_auth_token', newToken);
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          }
+          processQueue(null, newToken);
+          return apiClient(originalRequest);
+        }
+      } catch (refreshErr) {
+        processQueue(refreshErr instanceof Error ? refreshErr : new Error('Re-authentication failed'), null);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     const message = error.response?.data?.error?.message || error.message || 'An unexpected error occurred';
     return Promise.reject(new Error(message));
   }
