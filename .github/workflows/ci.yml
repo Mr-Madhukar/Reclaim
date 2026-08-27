@@ -71,20 +71,20 @@ jobs:
       - name: 📥 Install Dependencies
         run: pnpm install
 
-      - name: 🔍 Lint Codebase (ESLint)
-        run: pnpm run lint:eslint
-
-      - name: 🔒 Security Audit Dependencies
-        run: pnpm audit --audit-level=high || true
-
-      - name: 🏷️ Typecheck Codebase (TypeScript)
-        run: pnpm run lint:types
-
       - name: 🗄️ Generate Prisma Client & Migrate Schema
         run: |
           pnpm run db:generate
           pnpm run db:push
           pnpm run db:seed
+
+      - name: 🔍 Lint Codebase (ESLint)
+        run: pnpm run lint:eslint
+
+      - name: 🏷️ Typecheck Codebase (TypeScript)
+        run: pnpm run lint:types
+
+      - name: 🔒 Security Audit Dependencies
+        run: pnpm audit --audit-level=high || true
 
       - name: 🧪 Run Backend Unit & Integration Tests
         run: pnpm --filter server test
