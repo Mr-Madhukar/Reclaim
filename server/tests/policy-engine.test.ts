@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { Prisma } from '@prisma/client';
 import { PolicyEngine } from '../src/services/policy-engine';
 
 describe('PolicyEngine — Deterministic Compliance Gate', () => {
@@ -70,7 +71,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
         }),
       },
       recoveryAction: {
-        count: async ({ where }: any) => {
+        count: async ({ where }: { where?: { case?: { merchantId?: string } } }) => {
           if (where?.case?.merchantId) {
             return opts.dailyActionsToday;
           }
@@ -84,14 +85,14 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
           };
         },
       },
-    };
+    } as unknown as Prisma.TransactionClient;
   };
 
   it('Check 1: Blocks action when case status is NOT open', async () => {
     const mockDb = createMockDb({ caseStatus: 'RECOVERED' });
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(false);
@@ -103,7 +104,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
     const mockDb = createMockDb({ optedOut: true });
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(false);
@@ -115,7 +116,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
     const mockDb = createMockDb({ maxAttempts: 3, attemptCount: 3 });
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(false);
@@ -127,7 +128,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
     const mockDb = createMockDb({ maxAttempts: 3, attemptCount: 2 });
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(true);
@@ -138,7 +139,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
     const mockDb = createMockDb({ cooldownMinutes: 60, lastActionMinutesAgo: 20 });
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(false);
@@ -150,7 +151,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
     const mockDb = createMockDb({ cooldownMinutes: 60, lastActionMinutesAgo: 65 });
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(true);
@@ -162,7 +163,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
 
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: lateNightDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(false);
@@ -179,7 +180,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
         proposedIncentiveAmount: 500, // 500 > 300
         nowOverride: testDate,
       },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(false);
@@ -191,7 +192,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
     const mockDb = createMockDb({ dailyActionsToday: 500, dailyCapGlobal: 500 });
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(false);
@@ -213,7 +214,7 @@ describe('PolicyEngine — Deterministic Compliance Gate', () => {
 
     const result = await policyEngine.checkPolicy(
       { caseId: 'case-test-1', actionType: 'send_retry_link', nowOverride: testDate },
-      mockDb as any
+      mockDb
     );
 
     expect(result.allowed).toBe(true);

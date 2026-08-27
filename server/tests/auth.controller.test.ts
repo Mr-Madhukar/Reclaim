@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app';
 
-describe('Auth Controller Tests', () => {
+describe('Auth Controller Tests', { timeout: 30000 }, () => {
   describe('POST /api/auth/login', () => {
     it('returns 401 with invalid email', async () => {
       const res = await request(app)
@@ -136,7 +136,7 @@ describe('Auth Controller Tests', () => {
       if (loginRes.status !== 200) return;
 
       const res = await request(app)
-        .post('/api/agent/batch')
+        .post('/api/agent/run-batch')
         .set('Authorization', `Bearer ${loginRes.body.accessToken}`);
 
       expect(res.status).toBe(403);

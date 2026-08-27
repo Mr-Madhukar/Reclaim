@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { GeminiAdapter } from '../src/integrations/gemini/gemini.adapter';
 
 describe('GeminiAdapter Tests', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { authenticateToken, requireRole, AuthenticatedRequest } from '../src/middleware/auth.middleware';
 import jwt from 'jsonwebtoken';
 import { env } from '../src/config/env';

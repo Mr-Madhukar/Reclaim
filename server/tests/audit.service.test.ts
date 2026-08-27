@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Prisma } from '@prisma/client';
 import { AuditService } from '../src/services/audit.service';
 
 describe('AuditService — Immutability & Event Logging', () => {
   it('Logs audit entries with actor, entity, event type, and JSON state diffs', async () => {
-    const mockTx: any = {
+    const mockTx = {
       auditLog: {
         create: vi.fn().mockImplementation(async ({ data }) => ({
           id: 'audit-entry-1',
@@ -11,7 +12,7 @@ describe('AuditService — Immutability & Event Logging', () => {
           ...data,
         })),
       },
-    };
+    } as unknown as Prisma.TransactionClient;
 
     const auditService = new AuditService();
 

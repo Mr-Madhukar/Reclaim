@@ -46,7 +46,7 @@ export class PolicyEngine {
     input: PolicyCheckInput,
     tx?: Prisma.TransactionClient
   ): Promise<PolicyCheckResult> {
-    const client = (tx || prisma) as any;
+    const client = tx || prisma;
     const now = input.nowOverride || new Date();
 
     // 1. Fetch case with customer & merchant details
@@ -85,7 +85,7 @@ export class PolicyEngine {
     }
 
     // 2. Fetch policy configuration for merchant & lane
-    let config = await client.policyConfig.findUnique({
+    const dbConfig = await client.policyConfig.findUnique({
       where: {
         merchantId_lane: {
           merchantId: recoveryCase.merchantId,
@@ -95,16 +95,14 @@ export class PolicyEngine {
     });
 
     // Fallback safe defaults if not explicitly seeded
-    if (!config) {
-      config = {
-        maxAttempts: 3,
-        cooldownMinutes: 60,
-        contactHourStart: recoveryCase.merchant?.contactHourStart ?? 9,
-        contactHourEnd: recoveryCase.merchant?.contactHourEnd ?? 19,
-        maxIncentiveAmount: 500,
-        dailyCapGlobal: 500,
-      };
-    }
+    const policy = {
+      maxAttempts: dbConfig?.maxAttempts ?? 3,
+      cooldownMinutes: dbConfig?.cooldownMinutes ?? 60,
+      contactHourStart: dbConfig?.contactHourStart ?? recoveryCase.merchant?.contactHourStart ?? 9,
+      contactHourEnd: dbConfig?.contactHourEnd ?? recoveryCase.merchant?.contactHourEnd ?? 19,
+      maxIncentiveAmount: dbConfig?.maxIncentiveAmount ? Number(dbConfig.maxIncentiveAmount) : 500,
+      dailyCapGlobal: dbConfig?.dailyCapGlobal ?? 500,
+    };
 
     // Check 3: Attempt Count Check (action-specific or case-wide)
     const attemptCount = await client.recoveryAction.count({
@@ -114,10 +112,10 @@ export class PolicyEngine {
       },
     });
 
-    if (attemptCount >= config.maxAttempts) {
+    if (attemptCount >= policy.maxAttempts) {
       return {
         allowed: false,
-        reason: `Maximum attempts (${config.maxAttempts}) reached for action '${input.actionType}'. Current count: ${attemptCount}.`,
+        reason: `Maximum attempts (${policy.maxAttempts}) reached for action '${input.actionType}'. Current count: ${attemptCount}.`,
         ruleTriggered: 'max_attempts',
       };
     }
@@ -130,8 +128,8 @@ export class PolicyEngine {
 
     if (lastAction) {
       const minutesSinceLastAction = (now.getTime() - new Date(lastAction.createdAt).getTime()) / (1000 * 60);
-      if (minutesSinceLastAction < config.cooldownMinutes) {
-        const remainingMinutes = Math.ceil(config.cooldownMinutes - minutesSinceLastAction);
+      if (minutesSinceLastAction < policy.cooldownMinutes) {
+        const remainingMinutes = Math.ceil(policy.cooldownMinutes - minutesSinceLastAction);
         return {
           allowed: false,
           reason: `Cool-down active. ${remainingMinutes} minute(s) remaining before next touch.`,
@@ -142,8 +140,8 @@ export class PolicyEngine {
 
     // Check 5: Contact Hours Check (Merchant / Customer Timezone)
     const timezone = recoveryCase.merchant?.timezone || 'Asia/Kolkata';
-    const contactHourStart = config.contactHourStart ?? recoveryCase.merchant?.contactHourStart ?? 9;
-    const contactHourEnd = config.contactHourEnd ?? recoveryCase.merchant?.contactHourEnd ?? 19;
+    const contactHourStart = policy.contactHourStart;
+    const contactHourEnd = policy.contactHourEnd;
     const currentHour = getHourInTimezone(now, timezone);
 
     if (currentHour < contactHourStart || currentHour >= contactHourEnd) {
@@ -159,7 +157,7 @@ export class PolicyEngine {
       input.actionType === 'apply_recovery_incentive' &&
       input.proposedIncentiveAmount !== undefined
     ) {
-      const maxIncentive = Number(config.maxIncentiveAmount);
+      const maxIncentive = policy.maxIncentiveAmount;
       if (input.proposedIncentiveAmount > maxIncentive) {
         return {
           allowed: false,
@@ -178,10 +176,10 @@ export class PolicyEngine {
       },
     });
 
-    if (dailyActionsCount >= config.dailyCapGlobal) {
+    if (dailyActionsCount >= policy.dailyCapGlobal) {
       return {
         allowed: false,
-        reason: `Merchant global daily action cap (${config.dailyCapGlobal}) reached for today.`,
+        reason: `Merchant global daily action cap (${policy.dailyCapGlobal}) reached for today.`,
         ruleTriggered: 'daily_cap',
       };
     }
