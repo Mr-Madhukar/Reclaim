@@ -104,16 +104,16 @@ export const WorkflowPipeline: React.FC = () => {
   const CurrentIcon = current.icon;
 
   return (
-    <section className="py-16 bg-cream-200/50 dark:bg-surface-900/50 border-y border-cream-300/80 dark:border-surface-750/80 transition-colors">
+    <section className="py-16 bg-cream-200/20 dark:bg-black/30 border-y border-cream-300/80 dark:border-white/[0.08] transition-colors backdrop-blur-[2px]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 mb-2">
-            The Core Architecture
-          </h2>
-          <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/[0.04] border border-cream-300 dark:border-white/[0.08] text-brand-600 dark:text-brand-400 text-xs font-mono uppercase tracking-wider mb-3">
+            <span>Core Architecture Loop</span>
+          </div>
+          <p className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             How Reclaim Operates: 6-Stage Autonomous Loop
           </p>
-          <p className="text-sm text-cream-700 dark:text-slate-400 mt-3">
+          <p className="text-sm text-slate-600 dark:text-zinc-400 mt-3 font-normal">
             Every recovery cycle follows this exact, deterministic sequence across all three loss lanes.
           </p>
         </div>
@@ -127,21 +127,21 @@ export const WorkflowPipeline: React.FC = () => {
               <button
                 key={step.id}
                 onClick={() => setActiveStep(idx)}
-                className={`p-3.5 rounded-2xl text-left transition-all border ${
+                className={`p-3.5 rounded-xl text-left transition-all border ${
                   isSelected
-                    ? 'bg-cream-100 dark:bg-surface-800 border-brand-500 shadow-glow-orange scale-[1.02]'
-                    : 'glass-card border-cream-300 dark:border-surface-750 hover:border-brand-500/40 opacity-80 hover:opacity-100'
+                    ? 'bg-white dark:bg-[#121215] border-brand-500 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)] scale-[1.02]'
+                    : 'bg-white/60 dark:bg-white/[0.02] border-cream-300/80 dark:border-white/[0.06] hover:border-brand-500/40 opacity-80 hover:opacity-100'
                 }`}
               >
                 <div className="flex items-center space-x-2 mb-2">
                   <div className={`p-1.5 rounded-lg border ${step.colorClass}`}>
                     <Icon className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-[10px] font-mono font-bold uppercase text-cream-600 dark:text-slate-400">
+                  <span className="text-[10px] font-mono font-semibold uppercase text-slate-500 dark:text-zinc-400">
                     Stage 0{idx + 1}
                   </span>
                 </div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                <div className="text-xs font-bold text-slate-900 dark:text-zinc-200 truncate">
                   {step.short}
                 </div>
               </button>
@@ -150,10 +150,10 @@ export const WorkflowPipeline: React.FC = () => {
         </div>
 
         {/* Detailed Inspector Card */}
-        <div className="glass-card rounded-3xl p-6 sm:p-8 border-cream-300 dark:border-surface-750 animate-fade-in shadow-xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-cream-300 dark:border-surface-750">
+        <div className="rounded-2xl p-6 sm:p-8 bg-white/70 dark:bg-[#09090b] border border-cream-300/80 dark:border-white/[0.08] animate-fade-in shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-cream-300/80 dark:border-white/[0.08]">
             <div className="flex items-center space-x-4">
-              <div className={`p-3 rounded-2xl border ${current.colorClass}`}>
+              <div className={`p-3 rounded-xl border ${current.colorClass}`}>
                 <CurrentIcon className="h-6 w-6" />
               </div>
               <div>
@@ -176,30 +176,30 @@ export const WorkflowPipeline: React.FC = () => {
             {/* Left: Functional Breakdown */}
             <div className="space-y-4">
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-cream-700 dark:text-slate-400 mb-1">
+                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1.5 font-semibold">
                   What Happens in this Stage
                 </h4>
-                <p className="text-sm text-cream-900 dark:text-slate-200 leading-relaxed">
+                <p className="text-sm text-slate-700 dark:text-zinc-300 leading-relaxed font-normal">
                   {current.whatItDoes}
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-cream-300/40 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 flex items-start space-x-3">
+              <div className="p-4 rounded-xl bg-white/50 dark:bg-white/[0.02] border border-cream-300 dark:border-white/[0.06] flex items-start space-x-3">
                 <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                <div className="text-xs text-cream-800 dark:text-slate-300 leading-relaxed">
-                  <strong>Stopping Condition Check:</strong> {current.safetyRule}
+                <div className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">
+                  <strong className="text-slate-900 dark:text-zinc-100">Stopping Condition Check:</strong> {current.safetyRule}
                 </div>
               </div>
             </div>
 
             {/* Right: Code / Receipt Log Preview */}
             <div>
-              <div className="flex items-center justify-between text-xs font-mono text-cream-700 dark:text-slate-400 mb-2">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-zinc-400 mb-2">
                 <span className="flex items-center space-x-1.5">
                   <FileCode2 className="h-3.5 w-3.5 text-brand-500" />
                   <span>Immutable Audit Log Payload</span>
                 </span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
                   VERIFIED RECEIPT
                 </span>
               </div>
@@ -207,9 +207,9 @@ export const WorkflowPipeline: React.FC = () => {
                 tabIndex={0}
                 role="region"
                 aria-label="Immutable Audit Log Payload Preview"
-                className="p-4 rounded-2xl bg-surface-950 text-slate-200 font-mono text-xs overflow-x-auto border border-surface-750 shadow-inner focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-4 rounded-xl bg-black text-slate-200 font-mono text-xs overflow-x-auto border border-white/[0.08] shadow-inner focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
-                <pre className="text-brand-400 leading-relaxed">
+                <pre className="text-emerald-400 leading-relaxed">
                   {current.receiptLog}
                 </pre>
               </div>

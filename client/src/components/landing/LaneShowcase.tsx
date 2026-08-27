@@ -157,14 +157,14 @@ export const LaneShowcase: React.FC = () => {
               <button
                 key={laneKey}
                 onClick={() => setSelectedLane(laneKey)}
-                className={`p-6 rounded-3xl text-left transition-all border ${
+                className={`p-6 rounded-2xl text-left transition-all border ${
                   isSelected
-                    ? `bg-cream-100 dark:bg-surface-800 ${laneObj.borderColor} shadow-glow-orange scale-[1.02]`
-                    : 'glass-card border-cream-300 dark:border-surface-750 hover:border-brand-500/30 opacity-85 hover:opacity-100'
+                    ? `bg-white dark:bg-[#121215] ${laneObj.borderColor} shadow-[0_0_20px_-4px_rgba(249,115,22,0.3)] scale-[1.02]`
+                    : 'bg-white/70 dark:bg-[#09090b] border-cream-300/80 dark:border-white/[0.08] hover:border-brand-500/40 opacity-85 hover:opacity-100'
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-2xl ${laneObj.badgeBg}`}>
+                  <div className={`p-3 rounded-xl ${laneObj.badgeBg}`}>
                     <LaneIcon className="h-6 w-6" />
                   </div>
                   {isSelected && (
@@ -176,7 +176,7 @@ export const LaneShowcase: React.FC = () => {
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
                   {laneObj.name}
                 </h3>
-                <p className="text-xs text-cream-700 dark:text-slate-400 line-clamp-2">
+                <p className="text-xs text-slate-600 dark:text-zinc-400 line-clamp-2 font-normal">
                   {laneObj.tagline}
                 </p>
               </button>
@@ -185,11 +185,11 @@ export const LaneShowcase: React.FC = () => {
         </div>
 
         {/* Selected Lane Showcase Card */}
-        <div className="glass-card rounded-3xl p-6 sm:p-10 border-cream-300 dark:border-surface-750 shadow-2xl animate-fade-in">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-8 border-b border-cream-300 dark:border-surface-750">
+        <div className="rounded-2xl p-6 sm:p-10 bg-white/80 dark:bg-[#09090b] border border-cream-300/80 dark:border-white/[0.08] shadow-2xl animate-fade-in backdrop-blur-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-8 border-b border-cream-300/80 dark:border-white/[0.08]">
             <div className="flex items-center space-x-4">
-              <div className={`p-4 rounded-2xl ${current.badgeBg}`}>
-                <Icon className="h-8 w-8" />
+              <div className={`p-3.5 rounded-xl ${current.badgeBg}`}>
+                <Icon className="h-7 w-7" />
               </div>
               <div>
                 <span className="text-xs font-mono font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
@@ -201,8 +201,8 @@ export const LaneShowcase: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-xs text-cream-700 dark:text-slate-400 max-w-md">
-              <strong className="text-slate-900 dark:text-white">Loss Trigger: </strong>
+            <div className="text-xs text-slate-600 dark:text-zinc-400 max-w-md font-normal">
+              <strong className="text-slate-900 dark:text-zinc-200">Loss Trigger: </strong>
               {current.lossScenario}
             </div>
           </div>
@@ -210,7 +210,7 @@ export const LaneShowcase: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8">
             {/* Col 1: Bounded Action Catalog */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+              <div className="flex items-center space-x-2 text-xs font-mono font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
                 <CheckCircle className="h-4 w-4" />
                 <span>Bounded Action Catalog</span>
               </div>
@@ -218,7 +218,7 @@ export const LaneShowcase: React.FC = () => {
                 {current.boundedActions.map((action, idx) => (
                   <li
                     key={idx}
-                    className="p-3 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-xs font-mono text-cream-900 dark:text-slate-200 flex items-start space-x-2"
+                    className="p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-cream-300/80 dark:border-white/[0.06] text-xs font-mono text-slate-800 dark:text-zinc-300 flex items-start space-x-2"
                   >
                     <span className="text-brand-500 font-bold">›</span>
                     <span>{action}</span>
@@ -229,7 +229,7 @@ export const LaneShowcase: React.FC = () => {
 
             {/* Col 2: Stopping Rules & Compliance */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              <div className="flex items-center space-x-2 text-xs font-mono font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
                 <Ban className="h-4 w-4" />
                 <span>Deterministic Stopping Rules</span>
               </div>
@@ -237,7 +237,7 @@ export const LaneShowcase: React.FC = () => {
                 {current.stoppingRules.map((rule, idx) => (
                   <li
                     key={idx}
-                    className="p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/20 text-xs text-cream-900 dark:text-slate-200 flex items-start space-x-2"
+                    className="p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 text-xs text-slate-800 dark:text-zinc-300 flex items-start space-x-2"
                   >
                     <Clock className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
                     <span>{rule}</span>
@@ -248,29 +248,29 @@ export const LaneShowcase: React.FC = () => {
 
             {/* Col 3: Real Simulated Case Proof */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              <div className="flex items-center justify-between text-xs font-mono font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                 <span>Simulated Case Walkthrough</span>
                 <span className="text-[10px] font-mono font-normal">SYNTHETIC SEED</span>
               </div>
-              <div className="p-4 rounded-2xl bg-surface-950 text-slate-100 font-mono text-xs border border-surface-750 space-y-2">
+              <div className="p-4 rounded-xl bg-black text-slate-100 font-mono text-xs border border-white/[0.08] space-y-2">
                 <div>
-                  <span className="text-slate-400">Customer: </span>
+                  <span className="text-zinc-500">Customer: </span>
                   <span className="text-white font-semibold">{current.simulatedCase.customer}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Amount at Risk: </span>
-                  <span className="text-risk-light font-semibold">{current.simulatedCase.amount}</span>
+                  <span className="text-zinc-500">Amount at Risk: </span>
+                  <span className="text-red-400 font-semibold">{current.simulatedCase.amount}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Diagnosis: </span>
+                  <span className="text-zinc-500">Diagnosis: </span>
                   <span className="text-brand-400">{current.simulatedCase.rootCause}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Action: </span>
+                  <span className="text-zinc-500">Action: </span>
                   <span className="text-indigo-400">{current.simulatedCase.actionTaken}</span>
                 </div>
-                <div className="pt-2 border-t border-surface-800">
-                  <span className="text-slate-400">Outcome: </span>
+                <div className="pt-2 border-t border-zinc-800">
+                  <span className="text-zinc-500">Outcome: </span>
                   <span className="text-emerald-400 font-bold">{current.simulatedCase.outcome}</span>
                 </div>
               </div>

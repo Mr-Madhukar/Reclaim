@@ -44,37 +44,37 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header role="banner" className="sticky top-0 z-40 w-full glass-panel border-b border-cream-300/80 dark:border-surface-750/80 transition-colors">
+    <header role="banner" className="sticky top-0 z-40 w-full bg-cream-100/80 dark:bg-[#020202]/80 backdrop-blur-xl border-b border-cream-300/80 dark:border-white/[0.08] transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left: Brand / Logo */}
         <div className="flex items-center space-x-3">
           <button
             onClick={() => onSelectTab('landing')}
-            className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-2xl"
+            className="flex items-center space-x-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-xl"
             aria-label="Reclaim — Go to Showcase page"
           >
-            <div className="h-10 w-10 rounded-xl bg-white shadow-md shadow-orange-500/15 border border-cream-300/80 dark:border-surface-700/80 p-1 overflow-hidden flex items-center justify-center group-hover:scale-105 transition-all">
+            <div className="h-9 w-9 rounded-xl bg-white shadow-md shadow-orange-500/15 border border-cream-300/80 dark:border-white/20 p-1 overflow-hidden flex items-center justify-center group-hover:scale-105 transition-all">
               <img
                 src="/android-chrome-192x192.png"
                 alt="Reclaim Logo"
                 className="h-full w-full object-contain rounded-lg"
               />
             </div>
-            <span className="font-black text-xl tracking-tight text-slate-900 dark:text-white">
+            <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
               RECLAIM
             </span>
           </button>
         </div>
 
         {/* Center: Desktop Navigation Tabs */}
-        <nav role="navigation" aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-surface-900/80 p-1 rounded-xl border border-cream-300/80 dark:border-surface-750/80">
+        <nav role="navigation" aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-white/[0.03] p-1 rounded-full border border-cream-300/80 dark:border-white/[0.08] backdrop-blur-md">
           <button
             onClick={() => onSelectTab('landing')}
             aria-current={activeTab === 'landing' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'landing'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-cream-700 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-cream-300/50 dark:hover:bg-surface-800'
+                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
             }`}
           >
             <Sparkles className="h-3.5 w-3.5" />
@@ -84,10 +84,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => onSelectTab('overview')}
             aria-current={activeTab === 'overview' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'overview'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-cream-700 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-cream-300/50 dark:hover:bg-surface-800'
+                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
             }`}
           >
             <LayoutDashboard className="h-3.5 w-3.5" />
@@ -97,10 +97,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => onSelectTab('cases')}
             aria-current={activeTab === 'cases' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'cases'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-cream-700 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-cream-300/50 dark:hover:bg-surface-800'
+                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
             }`}
           >
             <FileText className="h-3.5 w-3.5" />
@@ -110,10 +110,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => onSelectTab('sandbox')}
             aria-current={activeTab === 'sandbox' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'sandbox'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-cream-700 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-cream-300/50 dark:hover:bg-surface-800'
+                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
             }`}
           >
             <FlaskConical className="h-3.5 w-3.5" />
@@ -123,10 +123,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => onSelectTab('policies')}
             aria-current={activeTab === 'policies' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'policies'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-cream-700 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-cream-300/50 dark:hover:bg-surface-800'
+                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
             }`}
           >
             <Sliders className="h-3.5 w-3.5" />
@@ -136,10 +136,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => onSelectTab('audit')}
             aria-current={activeTab === 'audit' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'audit'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-cream-700 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-cream-300/50 dark:hover:bg-surface-800'
+                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
             }`}
           >
             <History className="h-3.5 w-3.5" />
@@ -149,10 +149,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => onSelectTab('scorecard')}
             aria-current={activeTab === 'scorecard' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'scorecard'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-cream-700 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-cream-300/50 dark:hover:bg-surface-800'
+                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
             }`}
           >
             <Award className="h-3.5 w-3.5" />

@@ -32,7 +32,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-cream-100 dark:bg-surface-950 text-cream-900 dark:text-slate-100 selection:bg-brand-500 selection:text-white transition-colors">
+    <div className="min-h-screen flex flex-col bg-transparent text-cream-900 dark:text-slate-100 selection:bg-brand-500 selection:text-white transition-colors relative">
       {/* Skip to main content — accessibility best practice */}
       <a
         href="#main-content"
