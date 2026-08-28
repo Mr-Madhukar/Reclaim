@@ -214,7 +214,7 @@ export class DiagnosisService {
         modelUsed: 'rules',
         customerCopy: {
           channel: 'email',
-          subject: params.locale === 'hinglish' ? 'Overdue invoice payment reminder' : 'Overdue invoice payment reminder',
+          subject: params.locale === 'hinglish' ? 'Aapke overdue invoice ki payment reminder' : 'Overdue invoice payment reminder',
           body: params.locale === 'hinglish'
             ? `Namaste ${params.customerName}, aapka ${params.currency || 'INR'} ${params.amount} ka invoice due date cross kar chuka hai. Kripya payment options check karein.`
             : `Dear ${params.customerName}, this is a formal reminder that invoice amounting to ${params.currency || 'INR'} ${params.amount} is currently overdue. Please review payment options.`,
