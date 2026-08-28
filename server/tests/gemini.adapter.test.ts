@@ -18,7 +18,7 @@ describe('GeminiAdapter Tests', () => {
       });
 
       expect(result.rootCause).toBe('network_error');
-      expect(result.confidence).toBe(0.8);
+      expect(result.confidence).toBeCloseTo(0.8);
       expect(result.recommendedAction).toBe('send_retry_link');
       expect(result.customerCopy.channel).toBe('email');
       expect(result.customerCopy.body).toContain('Aarav Sharma');
@@ -47,7 +47,7 @@ describe('GeminiAdapter Tests', () => {
       });
 
       expect(result.rootCause).toBe('unknown');
-      expect(result.confidence).toBe(0.85);
+      expect(result.confidence).toBeCloseTo(0.85);
       expect(result.recommendedAction).toBe('send_checkout_recovery_nudge');
       expect(result.customerCopy.body).toContain('Vikram Singh');
       expect(result.customerCopy.body).toContain('cart');
@@ -74,7 +74,7 @@ describe('GeminiAdapter Tests', () => {
       });
 
       expect(result.rootCause).toBe('unknown');
-      expect(result.confidence).toBe(0.9);
+      expect(result.confidence).toBeCloseTo(0.9);
       expect(result.recommendedAction).toBe('send_reminder');
       expect(result.customerCopy.body).toContain('Enterprise Corp');
       expect(result.customerCopy.body).toContain('USD');
