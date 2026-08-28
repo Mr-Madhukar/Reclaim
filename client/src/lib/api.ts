@@ -44,82 +44,83 @@ apiClient.interceptors.request.use((config) => {
 // Response interceptor: handle errors & silent auto-refresh / re-authentication on 401
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (value?: unknown) => void;
-  reject: (reason?: unknown) => void;
+  resolve: (token: string | null) => void;
+  reject: (reason: Error) => void;
 }> = [];
 
 const processQueue = (error: Error | null, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
+  for (const prom of failedQueue) {
     if (error) {
       prom.reject(error);
     } else {
       prom.resolve(token);
     }
-  });
+  }
   failedQueue = [];
 };
+
+async function executeTokenRefresh(): Promise<string | null> {
+  try {
+    const { data } = await axios.post<{ accessToken: string }>(
+      `${API_BASE_URL}/auth/refresh`,
+      {},
+      { withCredentials: true }
+    );
+    return data.accessToken;
+  } catch {
+    localStorage.removeItem('reclaim_auth_token');
+    return null;
+  }
+}
+
+async function retryWithRefreshedToken(originalRequest: InternalAxiosRequestConfig & { _retry?: boolean }) {
+  if (isRefreshing) {
+    const token = await new Promise<string | null>((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    });
+    if (token && originalRequest.headers) {
+      originalRequest.headers.Authorization = `Bearer ${token}`;
+    }
+    return apiClient(originalRequest);
+  }
+
+  originalRequest._retry = true;
+  isRefreshing = true;
+
+  try {
+    const newToken = await executeTokenRefresh();
+    if (newToken) {
+      localStorage.setItem('reclaim_auth_token', newToken);
+      if (originalRequest.headers) {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+      }
+      processQueue(null, newToken);
+      return apiClient(originalRequest);
+    }
+    processQueue(new Error('Session expired'), null);
+    throw new Error('Session expired');
+  } catch (refreshErr) {
+    const err = refreshErr instanceof Error ? refreshErr : new Error('Re-authentication failed');
+    processQueue(err, null);
+    throw err;
+  } finally {
+    isRefreshing = false;
+  }
+}
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<{ error?: { message?: string; code?: string } }>) => {
     const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
-
-    const isAuthEndpoint =
-      originalRequest?.url?.includes('/auth/login') ||
-      originalRequest?.url?.includes('/auth/refresh');
+    const url = originalRequest?.url || '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh');
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            if (token && originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            return apiClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        let newToken: string | null = null;
-        try {
-          const { data } = await axios.post<{ accessToken: string }>(
-            `${API_BASE_URL}/auth/refresh`,
-            {},
-            { withCredentials: true }
-          );
-          newToken = data.accessToken;
-        } catch {
-          localStorage.removeItem('reclaim_auth_token');
-          newToken = null;
-        }
-
-        if (newToken) {
-          localStorage.setItem('reclaim_auth_token', newToken);
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          }
-          processQueue(null, newToken);
-          return apiClient(originalRequest);
-        } else {
-          processQueue(new Error('Session expired'), null);
-          return Promise.reject(error);
-        }
-      } catch (refreshErr) {
-        processQueue(refreshErr instanceof Error ? refreshErr : new Error('Re-authentication failed'), null);
-        return Promise.reject(refreshErr);
-      } finally {
-        isRefreshing = false;
-      }
+      return retryWithRefreshedToken(originalRequest);
     }
 
     const message = error.response?.data?.error?.message || error.message || 'An unexpected error occurred';
-    return Promise.reject(new Error(message));
+    throw new Error(message);
   }
 );
 

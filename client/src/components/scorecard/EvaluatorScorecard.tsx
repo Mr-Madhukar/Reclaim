@@ -90,6 +90,7 @@ export const EvaluatorScorecard: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           <button
+            type="button"
             onClick={handleRunEvaluation}
             disabled={isRunningEvaluation}
             className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-lg transition-all disabled:opacity-50"
@@ -108,6 +109,7 @@ export const EvaluatorScorecard: React.FC = () => {
           </button>
 
           <button
+            type="button"
             onClick={() => setExportModalOpen(true)}
             className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow-glow-orange transition-all"
           >
@@ -128,6 +130,7 @@ export const EvaluatorScorecard: React.FC = () => {
             </div>
           </div>
           <button
+            type="button"
             onClick={() => setEvaluationError(null)}
             className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1"
           >
@@ -151,6 +154,7 @@ export const EvaluatorScorecard: React.FC = () => {
             </div>
           </div>
           <button
+            type="button"
             onClick={() => setBatchResult(null)}
             className="text-xs text-cream-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold px-2 py-1"
           >

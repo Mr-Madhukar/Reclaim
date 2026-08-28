@@ -205,6 +205,7 @@ export const CustomerRecoveryView: React.FC = () => {
             <div className="mb-3 flex items-center space-x-2 bg-cream-200 dark:bg-surface-850 p-1 rounded-xl border border-cream-300 dark:border-surface-750">
               <Languages className="h-3.5 w-3.5 text-brand-500 ml-1.5" />
               <button
+                type="button"
                 onClick={() => setCopyLanguage('en')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   copyLanguage === 'en'
@@ -215,6 +216,7 @@ export const CustomerRecoveryView: React.FC = () => {
                 English (Default)
               </button>
               <button
+                type="button"
                 onClick={() => setCopyLanguage('hinglish')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   copyLanguage === 'hinglish'
@@ -292,6 +294,7 @@ export const CustomerRecoveryView: React.FC = () => {
                     {/* Call Controls */}
                     <div className="flex items-center space-x-6">
                       <button
+                        type="button"
                         onClick={() => setIsMuted(!isMuted)}
                         className={`p-3 rounded-full ${
                           isMuted ? 'bg-amber-500 text-white' : 'bg-surface-800 text-slate-300'
@@ -301,6 +304,7 @@ export const CustomerRecoveryView: React.FC = () => {
                       </button>
 
                       <button
+                        type="button"
                         onClick={handleEndCall}
                         className="p-4 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/30 hover:scale-105 transition-all"
                       >
@@ -378,6 +382,7 @@ export const CustomerRecoveryView: React.FC = () => {
                     {/* Simulated Payment & Voice Action Buttons */}
                     <div className="space-y-2 pt-2">
                       <button
+                        type="button"
                         onClick={() => setPaymentModalOpen(true)}
                         disabled={isProcessing}
                         className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 hover:scale-102 transition-all cursor-pointer"
@@ -388,6 +393,7 @@ export const CustomerRecoveryView: React.FC = () => {
 
                       <div className="grid grid-cols-2 gap-2">
                         <button
+                          type="button"
                           onClick={() => setPaymentModalOpen(true)}
                           disabled={isProcessing}
                           className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
@@ -397,6 +403,7 @@ export const CustomerRecoveryView: React.FC = () => {
                         </button>
 
                         <button
+                          type="button"
                           onClick={handleStartCall}
                           className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-500/20 hover:scale-102 transition-all cursor-pointer"
                         >
@@ -439,6 +446,7 @@ export const CustomerRecoveryView: React.FC = () => {
                   className="px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white"
                 />
                 <button
+                  type="button"
                   onClick={() => handleCustomerAction('PROMISE_TO_PAY')}
                   disabled={isProcessing}
                   className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs"
@@ -459,6 +467,7 @@ export const CustomerRecoveryView: React.FC = () => {
                 Customer requests a 24-hour extension. Reclaim pauses retry attempts for 24 hours and updates next attempt schedule.
               </p>
               <button
+                type="button"
                 onClick={() => handleCustomerAction('GRACE_PERIOD')}
                 disabled={isProcessing}
                 className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs"
@@ -486,6 +495,7 @@ export const CustomerRecoveryView: React.FC = () => {
                   className="px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white"
                 />
                 <button
+                  type="button"
                   onClick={() =>
                     handleCustomerAction('UPDATE_PAYMENT_METHOD', {
                       paymentDetails: { method: 'UPI Auto-Debit', identifier: newUpiId },
@@ -510,6 +520,7 @@ export const CustomerRecoveryView: React.FC = () => {
                 Customer clicks &ldquo;Unsubscribe / Stop Reminders&rdquo;. Immediately closes the case under deterministic stopping rules and prevents further contact.
               </p>
               <button
+                type="button"
                 onClick={() => setOptOutModalOpen(true)}
                 disabled={isProcessing}
                 className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs transition-colors"
@@ -607,12 +618,14 @@ export const CustomerRecoveryView: React.FC = () => {
 
             <div className="flex space-x-3 pt-2">
               <button
+                type="button"
                 onClick={() => setOptOutModalOpen(false)}
                 className="flex-1 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-xs font-semibold text-slate-800 dark:text-slate-200"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={async () => {
                   setOptOutModalOpen(false);
                   await handleCustomerAction('OPT_OUT', { optOutReason });

@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { env } from './config/env';
 import { logger } from './lib/logger';
 
@@ -42,13 +42,13 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
 });
 
 // CORS configuration — supports comma-separated origins and ignores trailing slashes
-const allowedOrigins = env.CLIENT_URL.split(',').map((u) => u.trim().replace(/\/$/, ''));
+const allowedOrigins = new Set(env.CLIENT_URL.split(',').map((u) => u.trim().replace(/\/$/, '')));
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       const normalizedOrigin = origin.replace(/\/$/, '');
-      if (allowedOrigins.includes(normalizedOrigin) || allowedOrigins.includes('*') || env.NODE_ENV !== 'production') {
+      if (allowedOrigins.has(normalizedOrigin) || allowedOrigins.has('*') || env.NODE_ENV !== 'production') {
         return callback(null, true);
       }
       callback(null, true); // Allow origin dynamically for credentials

@@ -42,7 +42,7 @@ export class GeminiAdapter {
     simulateOutage?: boolean;
   }): Promise<{
     result: LLMDiagnosisOutput;
-    modelUsed: 'gemini-2.0-flash' | 'fallback_template' | string;
+    modelUsed: 'gemini-2.0-flash' | 'gemini-1.5-pro' | 'fallback_template';
     fallbackUsed: boolean;
   }> {
     if (params.simulateOutage || env.NODE_ENV === 'test') {
@@ -182,7 +182,7 @@ CRITICAL RULES:
       const parsed = JSON.parse(text) as LLMDiagnosisOutput;
       return {
         result: parsed,
-        modelUsed: env.GEMINI_MODEL || 'gemini-2.0-flash',
+        modelUsed: (env.GEMINI_MODEL as 'gemini-2.0-flash' | 'gemini-1.5-pro') || 'gemini-2.0-flash',
         fallbackUsed: false,
       };
 

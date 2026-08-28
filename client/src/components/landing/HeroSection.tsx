@@ -103,6 +103,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <button
+            type="button"
             onClick={() => onLaunchDashboard('overview')}
             className="w-full sm:w-auto inline-flex items-center justify-center space-x-2.5 px-8 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-brand-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-sm shadow-[0_0_25px_-4px_rgba(249,115,22,0.4)] hover:shadow-[0_0_35px_-2px_rgba(249,115,22,0.55)] hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
@@ -112,6 +113,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
           </button>
 
           <button
+            type="button"
             onClick={() => onLaunchDashboard('cases')}
             className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-7 py-3.5 rounded-xl bg-white/80 dark:bg-white/[0.04] border border-cream-300 dark:border-white/[0.08] text-slate-800 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm hover:border-brand-500/40 hover:bg-cream-100 dark:hover:bg-white/[0.08] transition-all backdrop-blur-md"
           >
@@ -137,6 +139,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
 
             <div className="flex items-center space-x-2">
               <button
+                type="button"
                 onClick={() => setActiveTelemetryTab('stream')}
                 className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all ${
                   activeTelemetryTab === 'stream'
@@ -147,6 +150,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
                 Live Stream
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTelemetryTab('guardrails')}
                 className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all ${
                   activeTelemetryTab === 'guardrails'

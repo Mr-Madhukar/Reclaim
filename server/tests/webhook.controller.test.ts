@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { env } from '../src/config/env';
 
 describe('Webhook Controller Tests', { timeout: 30000 }, () => {

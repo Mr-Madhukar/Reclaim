@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { PrismaClient, Role, Lane, CaseStatus, PaymentStatus, CheckoutStatus, InvoiceStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { auditService } from '../services/audit.service';

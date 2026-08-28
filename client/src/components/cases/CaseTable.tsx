@@ -140,6 +140,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
                     {/* Inspect button */}
                     <td className="py-4 px-6 text-right">
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectCase(kase);
@@ -219,6 +220,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
         </div>
         <div className="flex items-center space-x-2">
           <button
+            type="button"
             onClick={() => onPageChange(Math.max(1, page - 1))}
             disabled={page <= 1}
             className="px-3 py-1.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 disabled:opacity-40 hover:text-brand-500 transition-colors"
@@ -226,6 +228,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
             Previous
           </button>
           <button
+            type="button"
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages}
             className="px-3 py-1.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 disabled:opacity-40 hover:text-brand-500 transition-colors"

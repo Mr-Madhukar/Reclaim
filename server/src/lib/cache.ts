@@ -14,7 +14,7 @@ export const cacheKeys = {
 };
 
 export class CacheService {
-  private memoryStore: Map<string, CacheEntry<unknown>> = new Map();
+  private readonly memoryStore: Map<string, CacheEntry<unknown>> = new Map();
   private redisReady = false;
 
   constructor() {
@@ -122,7 +122,7 @@ export class CacheService {
    */
   async delByPattern(pattern: string): Promise<void> {
     // Clean memory store using regex
-    const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+    const regexPattern = new RegExp('^' + pattern.replaceAll('*', '.*') + '$');
     for (const k of this.memoryStore.keys()) {
       if (regexPattern.test(k)) {
         this.memoryStore.delete(k);

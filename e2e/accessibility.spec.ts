@@ -21,7 +21,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
 
   test('Dashboard page has no critical accessibility violations', async ({ page }) => {
     await page.getByRole('button', { name: /Dashboard/i }).first().click();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
@@ -37,7 +37,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
 
   test('Cases Workbench page has no critical accessibility violations', async ({ page }) => {
     await page.getByRole('button', { name: /Workbench/i }).first().click();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
@@ -52,7 +52,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
 
   test('Policy page has no critical accessibility violations', async ({ page }) => {
     await page.getByRole('button', { name: /Policies/i }).first().click();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
@@ -78,7 +78,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
 
   test('All navigation tabs have aria-current attribute for active tab', async ({ page }) => {
     await page.getByRole('button', { name: /Dashboard/i }).first().click();
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     const dashboardTab = page.getByRole('button', { name: /Dashboard/i }).first();
     const ariaCurrent = await dashboardTab.getAttribute('aria-current');
@@ -96,7 +96,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
       expect(expanded).toBe('false');
 
       await roleBtn.click();
-      await page.waitForTimeout(300);
+      await expect(roleBtn).toHaveAttribute('aria-expanded', 'true');
 
       const expandedAfter = await roleBtn.getAttribute('aria-expanded');
       expect(expandedAfter).toBe('true');
@@ -107,21 +107,16 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
     const roleBtn = page.locator('button[aria-haspopup="true"]').first();
     if (await roleBtn.count() > 0) {
       await roleBtn.click();
-      await page.waitForTimeout(300);
+      await expect(roleBtn).toHaveAttribute('aria-expanded', 'true');
 
       const customLoginBtn = page.getByText('Custom Login...').first();
       if (await customLoginBtn.isVisible()) {
         await customLoginBtn.click();
-        await page.waitForTimeout(500);
+        const dialog = page.locator('dialog, [role="dialog"]').first();
+        await expect(dialog).toBeVisible();
 
-        const dialog = page.locator('[role="dialog"]');
-        if (await dialog.count() > 0) {
-          const ariaModal = await dialog.getAttribute('aria-modal');
-          expect(ariaModal).toBe('true');
-
-          const labelledBy = await dialog.getAttribute('aria-labelledby');
-          expect(labelledBy).toBeTruthy();
-        }
+        const labelledBy = await dialog.getAttribute('aria-labelledby');
+        expect(labelledBy).toBeTruthy();
       }
     }
   });

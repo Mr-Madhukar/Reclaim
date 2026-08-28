@@ -53,17 +53,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      open
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent w-full h-full max-w-none max-h-none m-0 border-0 overflow-visible"
       aria-labelledby="login-modal-title"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
-      <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+      <button
+        type="button"
+        aria-label="Close backdrop"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm cursor-default w-full h-full border-0"
         onClick={onClose}
-        aria-hidden="true"
       />
 
       <div className="relative w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-cream-300 dark:border-surface-750 z-10 space-y-6 animate-slide-up">
@@ -82,9 +82,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close login modal"
-            className="p-1.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300"
+            className="p-1.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -97,27 +98,30 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </span>
           <div className="grid grid-cols-3 gap-2">
             <button
+              type="button"
               onClick={() => handleQuickSwitch('ADMIN')}
               disabled={isSubmitting}
-              className="p-2.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/30 text-xs font-mono font-bold text-center transition-all"
+              className="p-2.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/30 text-xs font-mono font-bold text-center transition-all disabled:opacity-50"
             >
               <UserCheck className="h-4 w-4 mx-auto mb-1" />
               <span>Admin</span>
             </button>
 
             <button
+              type="button"
               onClick={() => handleQuickSwitch('REVIEWER')}
               disabled={isSubmitting}
-              className="p-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-mono font-bold text-center transition-all"
+              className="p-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-mono font-bold text-center transition-all disabled:opacity-50"
             >
               <UserCheck className="h-4 w-4 mx-auto mb-1" />
               <span>Reviewer</span>
             </button>
 
             <button
+              type="button"
               onClick={() => handleQuickSwitch('OPS_VIEWER')}
               disabled={isSubmitting}
-              className="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-mono font-bold text-center transition-all"
+              className="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-mono font-bold text-center transition-all disabled:opacity-50"
             >
               <UserCheck className="h-4 w-4 mx-auto mb-1" />
               <span>Ops Viewer</span>
@@ -184,6 +188,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </button>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 };

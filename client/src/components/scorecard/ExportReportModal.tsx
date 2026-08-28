@@ -145,8 +145,10 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
             </h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300"
+            aria-label="Close export report modal"
+            className="p-2 rounded-xl bg-cream-200 dark:bg-surface-850 hover:bg-cream-300 dark:hover:bg-surface-800 text-cream-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -158,6 +160,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
 
         <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
           <button
+            type="button"
             onClick={handleCopy}
             className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-800 border border-cream-300 dark:border-surface-700 text-xs font-bold text-slate-900 dark:text-white hover:border-brand-500 transition-colors"
           >
@@ -166,6 +169,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
           </button>
 
           <button
+            type="button"
             onClick={handleDownloadJSON}
             className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-surface-850 hover:bg-surface-800 border border-surface-700 text-slate-200 text-xs font-mono font-bold transition-all"
           >
@@ -174,6 +178,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
           </button>
 
           <button
+            type="button"
             onClick={handleDownload}
             className="w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-glow-orange transition-all"
           >

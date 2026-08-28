@@ -148,6 +148,7 @@ export const StoppingRulesSection: React.FC<StoppingRulesSectionProps> = ({
 
         {onNavigateAudit && (
           <button
+            type="button"
             onClick={onNavigateAudit}
             className="inline-flex items-center space-x-1 font-bold text-brand-600 dark:text-brand-400 hover:underline shrink-0"
           >
