@@ -63,21 +63,31 @@ export const CustomerRecoveryView: React.FC = () => {
     return () => clearInterval(interval);
   }, [isCalling]);
 
+  const getCustomerDisplayName = (name?: string) => {
+    if (!name || name.startsWith('+') || name === 'Customer' || name.toLowerCase().includes('example') || name.toLowerCase().includes('techscale')) {
+      return 'Priya Patel';
+    }
+    return name;
+  };
+
   const handleStartCall = () => {
     setCallDuration(0);
     setIsCalling(true);
     setIsSpeaking(true);
 
+    const displayName = getCustomerDisplayName(activeCase?.customer?.name);
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const textToSpeak =
         copyLanguage === 'hinglish'
-          ? `Namaste ${activeCase?.customer.name}. Reclaim AI revenue recovery assistant calling regarding your pending payment of rupees ${Number(activeCase?.amount)}. We noticed a temporary bank timeout. You can complete your transaction securely in ten seconds.`
-          : `Hello ${activeCase?.customer.name}. This is Reclaim AI calling regarding your pending payment of rupees ${Number(activeCase?.amount)}. A direct retry link has been sent to your registered phone number.`;
+          ? `Namaste ${displayName} ji. Reclaim AI se call kar rahe hain aapki ${Number(activeCase?.amount || 0)} rupaye ki pending payment ke regarding. Bank server timeout ki wajah se transaction ruk gaya tha. Aap direct link se das second me payment complete kar sakte hain.`
+          : `Hello ${displayName}. This is Reclaim AI calling regarding your pending transaction of ${Number(activeCase?.amount || 0)} rupees. We detected a temporary bank timeout. You can securely complete your payment in ten seconds.`;
 
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.rate = 0.92;
       utterance.pitch = 1.05;
+      utterance.lang = copyLanguage === 'hinglish' ? 'hi-IN' : 'en-US';
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
       window.speechSynthesis.speak(utterance);
@@ -243,7 +253,7 @@ export const CustomerRecoveryView: React.FC = () => {
                         Reclaim Voice Agent
                       </h4>
                       <p className="text-xs text-cream-600 dark:text-slate-400">
-                        Speaking with {activeCase.customer.name}
+                        Speaking with {getCustomerDisplayName(activeCase.customer?.name)}
                       </p>
                       <div className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200">
                         {formatCallDuration(callDuration)}
@@ -270,11 +280,11 @@ export const CustomerRecoveryView: React.FC = () => {
                       </span>
                       {copyLanguage === 'hinglish' ? (
                         <p>
-                          &ldquo;Namaste {activeCase.customer.name}. Reclaim AI calling regarding your {formatINR(activeCase.amount)} pending transaction. We noticed a temporary bank timeout. You can complete it securely in 10 seconds.&rdquo;
+                          &ldquo;Namaste {getCustomerDisplayName(activeCase.customer?.name)} ji! Reclaim AI se call kar rahe hain aapki {formatINR(activeCase.amount)} ki pending payment ke regarding. Bank server timeout ki wajah se transaction ruk gaya tha. Aap niche diye gaye link se sirf 10 seconds me payment complete kar sakte hain.&rdquo;
                         </p>
                       ) : (
                         <p>
-                          &ldquo;Hello {activeCase.customer.name}. Reclaim AI calling regarding your interrupted payment of {formatINR(activeCase.amount)}. A direct retry link has been sent to your phone.&rdquo;
+                          &ldquo;Hello {getCustomerDisplayName(activeCase.customer?.name)}. This is Reclaim AI calling regarding your interrupted payment of {formatINR(activeCase.amount)}. We detected a temporary bank timeout. You can complete your transaction securely in 10 seconds.&rdquo;
                         </p>
                       )}
                     </div>
@@ -330,7 +340,7 @@ export const CustomerRecoveryView: React.FC = () => {
 
                         {copyLanguage === 'en' ? (
                           <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
-                            &ldquo;Hi {activeCase.customer.name}, your payment of{' '}
+                            &ldquo;Hi {getCustomerDisplayName(activeCase.customer?.name)}, your payment of{' '}
                             <strong>{formatINR(activeCase.amount)}</strong> could not be completed due to a temporary{' '}
                             <strong className="text-brand-600 dark:text-brand-400">
                               {formatRootCause(activeCase.rootCause)}
@@ -339,7 +349,7 @@ export const CustomerRecoveryView: React.FC = () => {
                           </p>
                         ) : (
                           <p className="text-cream-900 dark:text-slate-200 leading-relaxed text-xs">
-                            &ldquo;Namaste {activeCase.customer.name}, aapka{' '}
+                            &ldquo;Namaste {getCustomerDisplayName(activeCase.customer?.name)} ji, aapka{' '}
                             <strong>{formatINR(activeCase.amount)}</strong> ka payment temporary technical issue (
                             <strong className="text-brand-600 dark:text-brand-400">
                               {formatRootCause(activeCase.rootCause)}

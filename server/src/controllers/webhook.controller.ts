@@ -58,12 +58,15 @@ export class WebhookController {
             });
 
             if (!customer) {
+              const fallbackNames = ['Rohit Sharma', 'Ananya Iyer', 'Siddharth Verma', 'Deepika Rao', 'Vikram Malhotra'];
+              const randomName = fallbackNames[Math.floor(Math.random() * fallbackNames.length)];
+              const emailPrefix = randomName.toLowerCase().replace(/\s+/g, '.');
               customer = await prisma.customer.create({
                 data: {
                   merchantId: merchant.id,
-                  name: payment.contact || 'Customer',
-                  email: payment.email || `customer_${Date.now()}@example.com`,
-                  phone: payment.contact,
+                  name: payment.notes?.customer_name || payment.name || randomName,
+                  email: payment.email || `${emailPrefix}.${Date.now() % 1000}@example.com`,
+                  phone: payment.contact || '+919876543210',
                 },
               });
             }
