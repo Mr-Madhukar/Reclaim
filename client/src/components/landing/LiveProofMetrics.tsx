@@ -67,7 +67,7 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
             <div className="pt-2">
               <button
                 onClick={() => onLaunchDashboard('overview')}
-                className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm shadow-[0_0_20px_-4px_rgba(249,115,22,0.4)] transition-all hover:scale-[1.02]"
+                className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm shadow-[0_0_20px_-4px_rgba(249,115,22,0.4)] transition-all hover:scale-[1.02]"
               >
                 <Zap className="h-4 w-4 fill-white" />
                 <span>Verify Live Metrics in Dashboard</span>
@@ -85,7 +85,7 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
                     Synthetic Evaluation Batch (55 Records)
                   </span>
                 </div>
-                <span className="text-[11px] font-mono font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                <span className="text-[11px] font-mono font-semibold text-emerald-600 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
                   LIVE BENCHMARK
                 </span>
               </div>
@@ -95,7 +95,7 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
                 <div>
                   <div className="flex justify-between text-xs font-semibold mb-1.5 text-slate-700 dark:text-zinc-300">
                     <span>Payment Degradation (Lane A)</span>
-                    <span className="font-mono text-emerald-600 dark:text-emerald-400">84.6% Recovered</span>
+                    <span className="font-mono text-emerald-600 dark:text-emerald-300">84.6% Recovered</span>
                   </div>
                   <div className="w-full h-2.5 bg-cream-300/70 dark:bg-white/[0.06] rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full" style={{ width: '84.6%' }} />
@@ -105,7 +105,7 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
                 <div>
                   <div className="flex justify-between text-xs font-semibold mb-1.5 text-slate-700 dark:text-zinc-300">
                     <span>Checkout Abandonment (Lane B)</span>
-                    <span className="font-mono text-indigo-600 dark:text-indigo-400">62.8% Recovered</span>
+                    <span className="font-mono text-indigo-600 dark:text-indigo-300">62.8% Recovered</span>
                   </div>
                   <div className="w-full h-2.5 bg-cream-300/70 dark:bg-white/[0.06] rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-400 rounded-full" style={{ width: '62.8%' }} />
@@ -115,7 +115,7 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
                 <div>
                   <div className="flex justify-between text-xs font-semibold mb-1.5 text-slate-700 dark:text-zinc-300">
                     <span>B2B Overdue Receivables (Lane C)</span>
-                    <span className="font-mono text-amber-600 dark:text-amber-400">73.2% Resolved</span>
+                    <span className="font-mono text-amber-600 dark:text-amber-300">73.2% Resolved</span>
                   </div>
                   <div className="w-full h-2.5 bg-cream-300/70 dark:bg-white/[0.06] rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-amber-500 to-orange-400 rounded-full" style={{ width: '73.2%' }} />

@@ -209,7 +209,7 @@ export const WorkflowPipeline: React.FC = () => {
                 aria-label="Immutable Audit Log Payload Preview"
                 className="p-4 rounded-xl bg-black text-slate-200 font-mono text-xs overflow-x-auto border border-white/[0.08] shadow-inner focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
-                <pre className="text-emerald-400 leading-relaxed">
+                <pre className="text-emerald-300 leading-relaxed font-medium">
                   {current.receiptLog}
                 </pre>
               </div>
