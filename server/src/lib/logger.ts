@@ -1,6 +1,16 @@
 import pino from 'pino';
 import { env } from '../config/env';
 
+/**
+ * Sanitize untrusted input before logging to prevent log injection (CWE-117 / S5145)
+ */
+export function sanitizeLog(input: unknown): string {
+  if (typeof input !== 'string') {
+    return String(input ?? '');
+  }
+  return input.replace(/[\r\n\t]/g, '_').slice(0, 500);
+}
+
 export const logger = pino({
   level: env.NODE_ENV === 'test' ? 'silent' : 'info',
   redact: {

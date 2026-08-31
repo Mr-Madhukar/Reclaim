@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { logger } from '../lib/logger';
+import { logger, sanitizeLog } from '../lib/logger';
 
 export type AuditActor = 'agent' | 'system' | `human:${string}` | `customer:${string}`;
 export type AuditEntityType = 'RecoveryCase' | 'RecoveryAction' | 'PolicyConfig' | 'Webhook' | 'Customer';
@@ -54,6 +54,8 @@ export class AuditService {
         },
       });
 
+      const sanitizedReason = sanitizeLog(input.reason);
+
       logger.info(
         {
           auditId: entry.id,
@@ -62,13 +64,16 @@ export class AuditService {
           eventType: input.eventType,
           actor: input.actor,
         },
-        `[Audit Log] ${input.eventType}: ${input.reason}`
+        `[Audit Log] ${input.eventType}: ${sanitizedReason}`
       );
 
       return entry;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error({ err: message, input }, 'Failed to write audit log entry');
+      logger.error(
+        { err: sanitizeLog(message), entityId: input.entityId, eventType: input.eventType },
+        'Failed to write audit log entry'
+      );
       throw err;
     }
   }

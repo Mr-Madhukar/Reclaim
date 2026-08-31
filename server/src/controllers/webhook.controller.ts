@@ -4,7 +4,7 @@ import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { auditService } from '../services/audit.service';
 import { caseService } from '../services/case.service';
-import { logger } from '../lib/logger';
+import { logger, sanitizeLog } from '../lib/logger';
 import { cacheService } from '../lib/cache';
 import { Lane, PaymentStatus, InvoiceStatus, CaseStatus } from '@prisma/client';
 
@@ -127,13 +127,14 @@ export class WebhookController {
       },
     });
 
+    const errorDesc = sanitizeLog(payment.error_description || 'Payment Failed');
     await auditService.log({
       actor: 'system',
       entityType: 'RecoveryCase',
       entityId: recoveryCase.id,
       eventType: 'case_created',
-      afterJson: { event: WEBHOOK_EVENTS.PAYMENT_FAILED, paymentId: payment.id, amount: Number(payment.amount || 0) / 100 },
-      reason: `Recovery case opened via Razorpay webhook: ${payment.error_description || 'Payment Failed'}`,
+      afterJson: { event: WEBHOOK_EVENTS.PAYMENT_FAILED, paymentId: sanitizeLog(payment.id), amount: Number(payment.amount || 0) / 100 },
+      reason: `Recovery case opened via Razorpay webhook: ${errorDesc}`,
     });
 
     await cacheService.invalidateMetrics(merchant.id);
@@ -186,28 +187,32 @@ export class WebhookController {
       return;
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.recoveryCase.update({
-        where: { id: recoveryCase.id },
-        data: {
-          status: CaseStatus.RECOVERED,
-          closedAt: new Date(),
-          closedReason: `Payment captured successfully via webhook (${payment.id || orderId || 'captured'})`,
-        },
-      });
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.recoveryCase.update({
+          where: { id: recoveryCase.id },
+          data: {
+            status: CaseStatus.RECOVERED,
+            closedAt: new Date(),
+            closedReason: `Payment captured successfully via webhook (${payment.id || orderId || 'captured'})`,
+          },
+        });
 
-      await auditService.log(
-        {
-          actor: 'system',
-          entityType: 'RecoveryCase',
-          entityId: recoveryCase.id,
-          eventType: 'case_recovered',
-          afterJson: { paymentId: payment.id, amount: Number(recoveryCase.amount) },
-          reason: `Case recovered: Payment captured on Razorpay (${payment.id || orderId || 'captured'})`,
-        },
-        tx
-      );
-    });
+        const paymentRef = sanitizeLog(payment.id || orderId || 'captured');
+        await auditService.log(
+          {
+            actor: 'system',
+            entityType: 'RecoveryCase',
+            entityId: recoveryCase.id,
+            eventType: 'case_recovered',
+            afterJson: { paymentId: paymentRef, amount: Number(recoveryCase.amount) },
+            reason: `Case recovered: Payment captured on Razorpay (${paymentRef})`,
+          },
+          tx
+        );
+      },
+      { timeout: 15000 }
+    );
 
     await cacheService.invalidateMetrics(recoveryCase.merchantId || merchant.id);
   }
@@ -266,13 +271,14 @@ export class WebhookController {
       },
     });
 
+    const invoiceNum = sanitizeLog(invoice.invoiceNumber);
     await auditService.log({
       actor: 'system',
       entityType: 'RecoveryCase',
       entityId: recoveryCase.id,
       eventType: 'case_created',
-      afterJson: { event: WEBHOOK_EVENTS.INVOICE_OVERDUE, invoiceId: invoice.id, amountDue: Number(invoice.amountDue) },
-      reason: `Receivables case created for overdue invoice ${invoice.invoiceNumber}`,
+      afterJson: { event: WEBHOOK_EVENTS.INVOICE_OVERDUE, invoiceId: sanitizeLog(invoice.id), amountDue: Number(invoice.amountDue) },
+      reason: `Receivables case created for overdue invoice ${invoiceNum}`,
     });
 
     await cacheService.invalidateMetrics(merchant.id);
@@ -293,7 +299,7 @@ export class WebhookController {
 
     const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     if (!this.verifySignature(rawBody, signature)) {
-      logger.warn({ receivedSignature: signature }, 'Invalid Razorpay webhook signature');
+      logger.warn('Invalid Razorpay webhook signature');
       res.status(400).json({
         error: {
           code: 'INVALID_SIGNATURE',
@@ -304,7 +310,8 @@ export class WebhookController {
     }
 
     const { event, payload } = req.body;
-    logger.info({ event }, 'Received verified Razorpay webhook event');
+    const sanitizedEvent = sanitizeLog(event);
+    logger.info({ event: sanitizedEvent }, 'Received verified Razorpay webhook event');
 
     try {
       switch (event) {
@@ -326,7 +333,7 @@ export class WebhookController {
       res.json({ status: 'ok', received: true });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      logger.error({ err: errorMessage, event }, 'Error processing Razorpay webhook');
+      logger.error({ err: sanitizeLog(errorMessage), event: sanitizedEvent }, 'Error processing Razorpay webhook');
       res.status(500).json({
         error: {
           code: 'WEBHOOK_PROCESSING_FAILED',
@@ -442,7 +449,7 @@ export class WebhookController {
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to simulate webhook';
-      logger.error({ err: errorMessage }, 'Simulate webhook error');
+      logger.error({ err: sanitizeLog(errorMessage) }, 'Simulate webhook error');
       res.status(500).json({
         error: {
           code: 'SIMULATION_ERROR',

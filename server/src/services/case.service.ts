@@ -8,9 +8,398 @@ import { policyEngine } from './policy-engine';
 import { diagnosisService } from './diagnosis.service';
 import { razorpayAdapter } from '../integrations/razorpay/razorpay.adapter';
 import { notificationAdapter, SendNotificationResult } from '../integrations/notifications/notification.adapter';
-import { BoundedActionType, MetricSummary } from '../types';
+import {
+  BoundedActionType,
+  MetricSummary,
+  StoppingRulesBreakdown,
+  EvaluationBenchmark,
+  PolicyCheckResult,
+  DiagnosisResult,
+} from '../types';
+
+type RecoveryCaseWithRelations = Prisma.RecoveryCaseGetPayload<{
+  include: {
+    customer: true;
+    merchant: true;
+    actions: { orderBy: { createdAt: 'desc' } };
+  };
+}>;
 
 export class CaseService {
+  /**
+   * Retrieve failure code and raw reason from PaymentAttempt if PAYMENT lane
+   */
+  private async getPaymentFailureContext(
+    lane: Lane,
+    sourceRefId: string
+  ): Promise<{ failureCode?: string; failureReasonRaw?: string }> {
+    if (lane !== 'PAYMENT') {
+      return {};
+    }
+    const paymentAttempt = await prisma.paymentAttempt.findUnique({
+      where: { id: sourceRefId },
+      select: { failureCode: true, failureReasonRaw: true },
+    });
+    return {
+      failureCode: paymentAttempt?.failureCode || undefined,
+      failureReasonRaw: paymentAttempt?.failureReasonRaw || undefined,
+    };
+  }
+
+  /**
+   * Update case rootCause if newly diagnosed or changed
+   */
+  private async syncDiagnosisRootCause(
+    caseId: string,
+    currentRootCause: string | null,
+    diagnosis: DiagnosisResult
+  ): Promise<void> {
+    if (currentRootCause === diagnosis.rootCause) {
+      return;
+    }
+
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.recoveryCase.update({
+          where: { id: caseId },
+          data: { rootCause: diagnosis.rootCause },
+        });
+
+        await auditService.log(
+          {
+            actor: 'agent',
+            entityType: 'RecoveryCase',
+            entityId: caseId,
+            eventType: 'root_cause_diagnosed',
+            beforeJson: { rootCause: currentRootCause },
+            afterJson: {
+              rootCause: diagnosis.rootCause,
+              explanation: diagnosis.explanation,
+              modelUsed: diagnosis.modelUsed,
+            },
+            reason: `Root cause diagnosed as '${diagnosis.rootCause}' via ${diagnosis.modelUsed} (${Math.round(diagnosis.confidence * 100)}% confidence).`,
+          },
+          tx
+        );
+      },
+      { timeout: 15000 }
+    );
+  }
+
+  /**
+   * Map rule trigger to terminal CaseStatus for blocked cases
+   */
+  private getBlockedCaseStatus(ruleTriggered?: string, defaultStatus: CaseStatus = 'OPEN'): CaseStatus {
+    if (ruleTriggered === 'max_attempts') {
+      return 'STOPPED_MAX_ATTEMPTS';
+    }
+    if (ruleTriggered === 'opt_out') {
+      return 'STOPPED_OPTED_OUT';
+    }
+    return defaultStatus;
+  }
+
+  /**
+   * Handle policy blocked transitions and audit logging
+   */
+  private async handleBlockedPolicy(
+    caseId: string,
+    currentStatus: CaseStatus,
+    proposedAction: BoundedActionType,
+    policyResult: PolicyCheckResult
+  ) {
+    const resultingStatus = this.getBlockedCaseStatus(policyResult.ruleTriggered, currentStatus);
+
+    await prisma.$transaction(
+      async (tx) => {
+        if (resultingStatus !== currentStatus) {
+          await tx.recoveryCase.update({
+            where: { id: caseId },
+            data: {
+              status: resultingStatus,
+              closedAt: new Date(),
+              closedReason: policyResult.reason,
+            },
+          });
+        }
+
+        await auditService.log(
+          {
+            actor: 'agent',
+            entityType: 'RecoveryCase',
+            entityId: caseId,
+            eventType: 'policy_blocked',
+            beforeJson: { status: currentStatus, proposedAction },
+            afterJson: { status: resultingStatus, ruleTriggered: policyResult.ruleTriggered },
+            reason: `Policy Blocked: ${policyResult.reason}`,
+          },
+          tx
+        );
+      },
+      { timeout: 15000 }
+    );
+
+    return {
+      caseId,
+      actionType: proposedAction,
+      status: resultingStatus,
+      outcome: 'blocked',
+      reason: policyResult.reason,
+      ruleTriggered: policyResult.ruleTriggered,
+    };
+  }
+
+  private async executeSendRetryLink(
+    recoveryCase: RecoveryCaseWithRelations,
+    diagnosis: DiagnosisResult
+  ): Promise<{ actionPayload: Record<string, unknown>; notificationResult: SendNotificationResult | null }> {
+    const link = await razorpayAdapter.createPaymentLink({
+      referenceId: recoveryCase.sourceRefId,
+      amount: Number(recoveryCase.amount),
+      customer: {
+        name: recoveryCase.customer.name,
+        email: recoveryCase.customer.email,
+        phone: recoveryCase.customer.phone || undefined,
+      },
+    });
+    const actionPayload = { paymentLink: link.shortUrl, paymentLinkId: link.id };
+    let notificationResult: SendNotificationResult | null = null;
+
+    if (diagnosis.customerCopy) {
+      notificationResult = await notificationAdapter.send({
+        channel: diagnosis.customerCopy.channel,
+        recipient: {
+          name: recoveryCase.customer.name,
+          email: recoveryCase.customer.email,
+          phone: recoveryCase.customer.phone || undefined,
+        },
+        subject: diagnosis.customerCopy.subject,
+        message: `${diagnosis.customerCopy.body}\nPayment link: ${link.shortUrl}`,
+      });
+    }
+
+    return { actionPayload, notificationResult };
+  }
+
+  private async executeSendMandateReauthLink(
+    recoveryCase: RecoveryCaseWithRelations,
+    diagnosis: DiagnosisResult
+  ): Promise<{ actionPayload: Record<string, unknown>; notificationResult: SendNotificationResult | null }> {
+    const mandate = await razorpayAdapter.createMandateReauthLink({
+      mandateId: recoveryCase.sourceRefId,
+      customer: {
+        name: recoveryCase.customer.name,
+        email: recoveryCase.customer.email,
+      },
+    });
+    const actionPayload = { mandateReauthUrl: mandate.reauthUrl };
+    let notificationResult: SendNotificationResult | null = null;
+
+    if (diagnosis.customerCopy) {
+      notificationResult = await notificationAdapter.send({
+        channel: diagnosis.customerCopy.channel,
+        recipient: {
+          name: recoveryCase.customer.name,
+          email: recoveryCase.customer.email,
+        },
+        subject: diagnosis.customerCopy.subject,
+        message: `${diagnosis.customerCopy.body}\nRe-authorize: ${mandate.reauthUrl}`,
+      });
+    }
+
+    return { actionPayload, notificationResult };
+  }
+
+  private async executeApplyRecoveryIncentive(
+    recoveryCase: RecoveryCaseWithRelations,
+    diagnosis: DiagnosisResult
+  ): Promise<{ actionPayload: Record<string, unknown>; notificationResult: SendNotificationResult | null }> {
+    const incentiveCode = `RECLAIM${crypto.randomInt(1000, 10000)}`;
+    const actionPayload = { incentiveAmount: 200, incentiveCode };
+    let notificationResult: SendNotificationResult | null = null;
+
+    if (diagnosis.customerCopy) {
+      notificationResult = await notificationAdapter.send({
+        channel: diagnosis.customerCopy.channel,
+        recipient: {
+          name: recoveryCase.customer.name,
+          email: recoveryCase.customer.email,
+        },
+        subject: 'Special offer to complete your checkout',
+        message: `${diagnosis.customerCopy.body}\nUse coupon code ${incentiveCode} for an instant ₹200 discount.`,
+      });
+    }
+
+    return { actionPayload, notificationResult };
+  }
+
+  private async executeDefaultAction(
+    recoveryCase: RecoveryCaseWithRelations,
+    diagnosis: DiagnosisResult
+  ): Promise<{ actionPayload: Record<string, unknown>; notificationResult: SendNotificationResult | null }> {
+    let notificationResult: SendNotificationResult | null = null;
+
+    if (diagnosis.customerCopy) {
+      notificationResult = await notificationAdapter.send({
+        channel: diagnosis.customerCopy.channel,
+        recipient: {
+          name: recoveryCase.customer.name,
+          email: recoveryCase.customer.email,
+          phone: recoveryCase.customer.phone || undefined,
+        },
+        subject: diagnosis.customerCopy.subject,
+        message: diagnosis.customerCopy.body,
+      });
+    }
+
+    return { actionPayload: { copy: diagnosis.customerCopy }, notificationResult };
+  }
+
+  /**
+   * Dispatch action execution based on proposed bounded action type
+   */
+  private async executeActionPayload(
+    proposedAction: BoundedActionType,
+    recoveryCase: RecoveryCaseWithRelations,
+    diagnosis: DiagnosisResult
+  ): Promise<{ actionPayload: Record<string, unknown>; notificationResult: SendNotificationResult | null }> {
+    switch (proposedAction) {
+      case 'send_retry_link':
+        return this.executeSendRetryLink(recoveryCase, diagnosis);
+      case 'send_mandate_reauth_link':
+        return this.executeSendMandateReauthLink(recoveryCase, diagnosis);
+      case 'apply_recovery_incentive':
+        return this.executeApplyRecoveryIncentive(recoveryCase, diagnosis);
+      case 'escalate_to_human':
+        return { actionPayload: { escalationReason: diagnosis.explanation }, notificationResult: null };
+      default:
+        return this.executeDefaultAction(recoveryCase, diagnosis);
+    }
+  }
+
+  /**
+   * Determine the resulting CaseStatus and recovery outcome string
+   */
+  private determineNextStatusAndOutcome(
+    proposedAction: BoundedActionType,
+    recoveryCase: { shouldRecover: boolean | null; lane: Lane },
+    attemptNumber: number
+  ): { nextStatus: CaseStatus; recoveryOutcome: string } {
+    if (proposedAction === 'escalate_to_human') {
+      return { nextStatus: 'ESCALATED_TO_HUMAN', recoveryOutcome: 'escalated' };
+    }
+
+    const isRecoverable =
+      Boolean(recoveryCase.shouldRecover) && (attemptNumber >= 2 || recoveryCase.lane === 'PAYMENT');
+    if (isRecoverable) {
+      return { nextStatus: 'RECOVERED', recoveryOutcome: 'confirmed' };
+    }
+
+    return { nextStatus: 'OPEN', recoveryOutcome: 'sent' };
+  }
+
+  /**
+   * Persist action record, audit logs, and case state updates in an atomic transaction
+   */
+  private async persistActionExecution(params: {
+    caseId: string;
+    recoveryCase: RecoveryCaseWithRelations;
+    proposedAction: BoundedActionType;
+    diagnosis: DiagnosisResult;
+    actionPayload: Record<string, unknown>;
+    notificationResult: SendNotificationResult | null;
+    attemptNumber: number;
+    nextStatus: CaseStatus;
+    recoveryOutcome: string;
+  }): Promise<void> {
+    const {
+      caseId,
+      recoveryCase,
+      proposedAction,
+      diagnosis,
+      actionPayload,
+      notificationResult,
+      attemptNumber,
+      nextStatus,
+      recoveryOutcome,
+    } = params;
+
+    const channel = diagnosis.customerCopy?.channel || 'email';
+
+    await prisma.$transaction(
+      async (tx) => {
+        // 1. Record Policy Passed in Audit Log
+        await auditService.log(
+          {
+            actor: 'agent',
+            entityType: 'RecoveryCase',
+            entityId: caseId,
+            eventType: 'policy_passed',
+            afterJson: { actionType: proposedAction, attemptNumber },
+            reason: `Policy check passed for '${proposedAction}' (Attempt ${attemptNumber}).`,
+          },
+          tx
+        );
+
+        // 2. Insert RecoveryAction (unique [caseId, actionType, attemptNumber])
+        const action = await tx.recoveryAction.create({
+          data: {
+            caseId,
+            actionType: proposedAction,
+            channel,
+            payloadJson: actionPayload as Prisma.InputJsonValue,
+            decisionReason: diagnosis.explanation,
+            modelUsed: diagnosis.modelUsed,
+            attemptNumber,
+            outcome: recoveryOutcome,
+          },
+        });
+
+        // 3. Record Action Executed in Audit Log
+        await auditService.log(
+          {
+            actor: 'agent',
+            entityType: 'RecoveryAction',
+            entityId: action.id,
+            eventType: 'action_executed',
+            afterJson: { actionType: proposedAction, payload: actionPayload, notification: notificationResult },
+            reason: `Executed action '${proposedAction}' via channel '${channel}'.`,
+          },
+          tx
+        );
+
+        // 4. Update Case state
+        if (nextStatus !== recoveryCase.status) {
+          await tx.recoveryCase.update({
+            where: { id: caseId },
+            data: {
+              status: nextStatus,
+              incentiveUsed: proposedAction === 'apply_recovery_incentive' ? 200 : recoveryCase.incentiveUsed,
+              closedAt: nextStatus !== 'OPEN' ? new Date() : null,
+              closedReason: nextStatus === 'RECOVERED' ? 'Payment recovered via autonomous intervention' : null,
+            },
+          });
+
+          if (nextStatus === 'RECOVERED') {
+            await auditService.log(
+              {
+                actor: 'system',
+                entityType: 'RecoveryCase',
+                entityId: caseId,
+                eventType: 'case_recovered',
+                beforeJson: { status: 'OPEN' },
+                afterJson: { status: 'RECOVERED', recoveredAmount: Number(recoveryCase.amount) },
+                reason: `Revenue recovered successfully: ₹${recoveryCase.amount}`,
+              },
+              tx
+            );
+          }
+        }
+      },
+      { timeout: 15000 }
+    );
+  }
+
   /**
    * Core autonomous workflow: Detect -> Diagnose -> Policy Gate -> Act -> Observe -> Stop
    */
@@ -47,24 +436,12 @@ export class CaseService {
       };
     }
 
-    // Determine current attempt number for this case
-    const totalPriorActions = recoveryCase.actions.length;
-    const attemptNumber = totalPriorActions + 1;
+    const attemptNumber = recoveryCase.actions.length + 1;
     const priorActionTypes = recoveryCase.actions.map((a) => a.actionType);
-
-    // Retrieve failure code and raw reason from PaymentAttempt if PAYMENT lane
-    let failureCode: string | undefined;
-    let failureReasonRaw: string | undefined;
-    if (recoveryCase.lane === 'PAYMENT') {
-      const paymentAttempt = await prisma.paymentAttempt.findUnique({
-        where: { id: recoveryCase.sourceRefId },
-        select: { failureCode: true, failureReasonRaw: true },
-      });
-      if (paymentAttempt) {
-        failureCode = paymentAttempt.failureCode || undefined;
-        failureReasonRaw = paymentAttempt.failureReasonRaw || undefined;
-      }
-    }
+    const { failureCode, failureReasonRaw } = await this.getPaymentFailureContext(
+      recoveryCase.lane,
+      recoveryCase.sourceRefId
+    );
 
     // STEP 1: Diagnose Root Cause & Recommend Bounded Action
     const diagnosis = await diagnosisService.diagnose({
@@ -80,31 +457,7 @@ export class CaseService {
       simulateOutage: options?.simulateOutage,
     });
 
-    // Update case rootCause if newly diagnosed
-    if (!recoveryCase.rootCause || recoveryCase.rootCause !== diagnosis.rootCause) {
-      await prisma.$transaction(
-        async (tx) => {
-          await tx.recoveryCase.update({
-            where: { id: caseId },
-            data: { rootCause: diagnosis.rootCause },
-          });
-
-          await auditService.log(
-            {
-              actor: 'agent',
-              entityType: 'RecoveryCase',
-              entityId: caseId,
-              eventType: 'root_cause_diagnosed',
-              beforeJson: { rootCause: recoveryCase.rootCause },
-              afterJson: { rootCause: diagnosis.rootCause, explanation: diagnosis.explanation, modelUsed: diagnosis.modelUsed },
-              reason: `Root cause diagnosed as '${diagnosis.rootCause}' via ${diagnosis.modelUsed} (${Math.round(diagnosis.confidence * 100)}% confidence).`,
-            },
-            tx
-          );
-        },
-        { timeout: 15000 }
-      );
-    }
+    await this.syncDiagnosisRootCause(caseId, recoveryCase.rootCause, diagnosis);
 
     const proposedAction = diagnosis.recommendedAction;
     const proposedIncentive = proposedAction === 'apply_recovery_incentive' ? 200 : undefined;
@@ -119,222 +472,35 @@ export class CaseService {
 
     // Handle Policy Blocked Path
     if (!policyResult.allowed) {
-      let resultingStatus: CaseStatus = recoveryCase.status;
-      const stopReason = policyResult.reason;
-
-      if (policyResult.ruleTriggered === 'max_attempts') {
-        resultingStatus = 'STOPPED_MAX_ATTEMPTS';
-      } else if (policyResult.ruleTriggered === 'opt_out') {
-        resultingStatus = 'STOPPED_OPTED_OUT';
-      }
-
-      await prisma.$transaction(
-        async (tx) => {
-          if (resultingStatus !== recoveryCase.status) {
-            await tx.recoveryCase.update({
-              where: { id: caseId },
-              data: {
-                status: resultingStatus,
-                closedAt: new Date(),
-                closedReason: stopReason,
-              },
-            });
-          }
-
-          await auditService.log(
-            {
-              actor: 'agent',
-              entityType: 'RecoveryCase',
-              entityId: caseId,
-              eventType: 'policy_blocked',
-              beforeJson: { status: recoveryCase.status, proposedAction },
-              afterJson: { status: resultingStatus, ruleTriggered: policyResult.ruleTriggered },
-              reason: `Policy Blocked: ${policyResult.reason}`,
-            },
-            tx
-          );
-        },
-        { timeout: 15000 }
-      );
-
-      return {
-        caseId,
-        actionType: proposedAction,
-        status: resultingStatus,
-        outcome: 'blocked',
-        reason: policyResult.reason,
-        ruleTriggered: policyResult.ruleTriggered,
-      };
+      return this.handleBlockedPolicy(caseId, recoveryCase.status, proposedAction, policyResult);
     }
 
     // STEP 3: Policy Passed -> Execute Bounded Action
-    let actionPayload: Record<string, unknown> = {};
-    let notificationResult: SendNotificationResult | null = null;
-
-    if (proposedAction === 'send_retry_link') {
-      const link = await razorpayAdapter.createPaymentLink({
-        referenceId: recoveryCase.sourceRefId,
-        amount: Number(recoveryCase.amount),
-        customer: {
-          name: recoveryCase.customer.name,
-          email: recoveryCase.customer.email,
-          phone: recoveryCase.customer.phone || undefined,
-        },
-      });
-      actionPayload = { paymentLink: link.shortUrl, paymentLinkId: link.id };
-
-      if (diagnosis.customerCopy) {
-        notificationResult = await notificationAdapter.send({
-          channel: diagnosis.customerCopy.channel,
-          recipient: {
-            name: recoveryCase.customer.name,
-            email: recoveryCase.customer.email,
-            phone: recoveryCase.customer.phone || undefined,
-          },
-          subject: diagnosis.customerCopy.subject,
-          message: `${diagnosis.customerCopy.body}\nPayment link: ${link.shortUrl}`,
-        });
-      }
-    } else if (proposedAction === 'send_mandate_reauth_link') {
-      const mandate = await razorpayAdapter.createMandateReauthLink({
-        mandateId: recoveryCase.sourceRefId,
-        customer: {
-          name: recoveryCase.customer.name,
-          email: recoveryCase.customer.email,
-        },
-      });
-      actionPayload = { mandateReauthUrl: mandate.reauthUrl };
-
-      if (diagnosis.customerCopy) {
-        notificationResult = await notificationAdapter.send({
-          channel: diagnosis.customerCopy.channel,
-          recipient: {
-            name: recoveryCase.customer.name,
-            email: recoveryCase.customer.email,
-          },
-          subject: diagnosis.customerCopy.subject,
-          message: `${diagnosis.customerCopy.body}\nRe-authorize: ${mandate.reauthUrl}`,
-        });
-      }
-    } else if (proposedAction === 'apply_recovery_incentive') {
-      const incentiveCode = `RECLAIM${crypto.randomInt(1000, 10000)}`;
-      actionPayload = { incentiveAmount: 200, incentiveCode };
-
-      if (diagnosis.customerCopy) {
-        notificationResult = await notificationAdapter.send({
-          channel: diagnosis.customerCopy.channel,
-          recipient: {
-            name: recoveryCase.customer.name,
-            email: recoveryCase.customer.email,
-          },
-          subject: 'Special offer to complete your checkout',
-          message: `${diagnosis.customerCopy.body}\nUse coupon code ${incentiveCode} for an instant ₹200 discount.`,
-        });
-      }
-    } else if (proposedAction === 'escalate_to_human') {
-      actionPayload = { escalationReason: diagnosis.explanation };
-    } else {
-      // Generic reminder / nudge / payment plan
-      if (diagnosis.customerCopy) {
-        notificationResult = await notificationAdapter.send({
-          channel: diagnosis.customerCopy.channel,
-          recipient: {
-            name: recoveryCase.customer.name,
-            email: recoveryCase.customer.email,
-            phone: recoveryCase.customer.phone || undefined,
-          },
-          subject: diagnosis.customerCopy.subject,
-          message: diagnosis.customerCopy.body,
-        });
-      }
-      actionPayload = { copy: diagnosis.customerCopy };
-    }
-
-    // Atomic DB write for Action and Case State update
-    let nextStatus: CaseStatus = 'OPEN';
-    let recoveryOutcome = 'sent';
-
-    if (proposedAction === 'escalate_to_human') {
-      nextStatus = 'ESCALATED_TO_HUMAN';
-      recoveryOutcome = 'escalated';
-    } else if (recoveryCase.shouldRecover && (attemptNumber >= 2 || recoveryCase.lane === 'PAYMENT')) {
-      // In synthetic demo environment, mark recoverable cases as RECOVERED upon successful intervention
-      nextStatus = 'RECOVERED';
-      recoveryOutcome = 'confirmed';
-    }
-
-    await prisma.$transaction(
-      async (tx) => {
-        // 1. Record Policy Passed in Audit Log
-        await auditService.log(
-          {
-            actor: 'agent',
-            entityType: 'RecoveryCase',
-            entityId: caseId,
-            eventType: 'policy_passed',
-            afterJson: { actionType: proposedAction, attemptNumber },
-            reason: `Policy check passed for '${proposedAction}' (Attempt ${attemptNumber}).`,
-          },
-          tx
-        );
-
-        // 2. Insert RecoveryAction (unique [caseId, actionType, attemptNumber])
-        const action = await tx.recoveryAction.create({
-          data: {
-            caseId,
-            actionType: proposedAction,
-            channel: diagnosis.customerCopy?.channel || 'email',
-            payloadJson: actionPayload as Prisma.InputJsonValue,
-            decisionReason: diagnosis.explanation,
-            modelUsed: diagnosis.modelUsed,
-            attemptNumber,
-            outcome: recoveryOutcome,
-          },
-        });
-
-        // 3. Record Action Executed in Audit Log
-        await auditService.log(
-          {
-            actor: 'agent',
-            entityType: 'RecoveryAction',
-            entityId: action.id,
-            eventType: 'action_executed',
-            afterJson: { actionType: proposedAction, payload: actionPayload, notification: notificationResult },
-            reason: `Executed action '${proposedAction}' via channel '${diagnosis.customerCopy?.channel || 'email'}'.`,
-          },
-          tx
-        );
-
-        // 4. Update Case state
-        if (nextStatus !== recoveryCase.status) {
-          await tx.recoveryCase.update({
-            where: { id: caseId },
-            data: {
-              status: nextStatus,
-              incentiveUsed: proposedAction === 'apply_recovery_incentive' ? 200 : recoveryCase.incentiveUsed,
-              closedAt: nextStatus !== 'OPEN' ? new Date() : null,
-              closedReason: nextStatus === 'RECOVERED' ? 'Payment recovered via autonomous intervention' : null,
-            },
-          });
-
-          if (nextStatus === 'RECOVERED') {
-            await auditService.log(
-              {
-                actor: 'system',
-                entityType: 'RecoveryCase',
-                entityId: caseId,
-                eventType: 'case_recovered',
-                beforeJson: { status: 'OPEN' },
-                afterJson: { status: 'RECOVERED', recoveredAmount: Number(recoveryCase.amount) },
-                reason: `Revenue recovered successfully: ₹${recoveryCase.amount}`,
-              },
-              tx
-            );
-          }
-        }
-      },
-      { timeout: 15000 }
+    const { actionPayload, notificationResult } = await this.executeActionPayload(
+      proposedAction,
+      recoveryCase,
+      diagnosis
     );
+
+    // STEP 4: Determine next status and outcome
+    const { nextStatus, recoveryOutcome } = this.determineNextStatusAndOutcome(
+      proposedAction,
+      recoveryCase,
+      attemptNumber
+    );
+
+    // STEP 5: Persist Action Execution & State Update
+    await this.persistActionExecution({
+      caseId,
+      recoveryCase,
+      proposedAction,
+      diagnosis,
+      actionPayload,
+      notificationResult,
+      attemptNumber,
+      nextStatus,
+      recoveryOutcome,
+    });
 
     // Invalidate cached metrics on case state change
     await cacheService.invalidateMetrics(recoveryCase.merchantId || undefined);
@@ -396,32 +562,146 @@ export class CaseService {
   }
 
   /**
-   * Compute live financial and recovery metrics
+   * Classify audit log reason into stopping rule category
    */
-  async getMetrics(merchantId?: string): Promise<MetricSummary> {
-    const where: Prisma.RecoveryCaseWhereInput = merchantId ? { merchantId } : {};
+  private classifyStoppingReason(eventType: string, reason?: string | null): keyof Omit<StoppingRulesBreakdown, 'total'> {
+    const reasonLower = (reason || '').toLowerCase();
+    if (eventType === 'customer_opted_out' || /opt|unsubscribe/.test(reasonLower)) {
+      return 'customerOptOut';
+    }
+    if (/max|attempt/.test(reasonLower)) {
+      return 'maxAttempts';
+    }
+    if (/cooldown|cool-down|wait/.test(reasonLower)) {
+      return 'cooldownActive';
+    }
+    if (/hour|time|night|window/.test(reasonLower)) {
+      return 'contactHours';
+    }
+    if (/ceiling|incentive/.test(reasonLower)) {
+      return 'monetaryCeiling';
+    }
+    if (/cap|daily/.test(reasonLower)) {
+      return 'dailyCap';
+    }
+    return 'maxAttempts';
+  }
 
-    const cases = await prisma.recoveryCase.findMany({
-      where,
-      select: {
-        id: true,
-        lane: true,
-        status: true,
-        amount: true,
-        incentiveUsed: true,
-        rootCause: true,
-        shouldRecover: true,
-        actions: { select: { actionType: true } },
-      },
+  /**
+   * Fetch and calculate stopping rules breakdown from audit logs and case counts
+   */
+  private async getStoppingRulesBreakdown(where: Prisma.RecoveryCaseWhereInput): Promise<StoppingRulesBreakdown> {
+    const stoppingTriggersCount = await prisma.auditLog.count({
+      where: { eventType: 'policy_blocked' },
     });
 
+    const blockedLogs = await prisma.auditLog.findMany({
+      where: {
+        eventType: { in: ['policy_blocked', 'customer_opted_out'] },
+      },
+      select: {
+        eventType: true,
+        reason: true,
+      },
+      take: 200,
+    });
+
+    const breakdown: StoppingRulesBreakdown = {
+      maxAttempts: 0,
+      customerOptOut: 0,
+      cooldownActive: 0,
+      contactHours: 0,
+      monetaryCeiling: 0,
+      dailyCap: 0,
+      total: stoppingTriggersCount,
+    };
+
+    for (const log of blockedLogs) {
+      const category = this.classifyStoppingReason(log.eventType, log.reason);
+      breakdown[category]++;
+    }
+
+    const stoppedMaxCount = await prisma.recoveryCase.count({ where: { ...where, status: 'STOPPED_MAX_ATTEMPTS' } });
+    const stoppedOptOutCount = await prisma.recoveryCase.count({ where: { ...where, status: 'STOPPED_OPTED_OUT' } });
+    breakdown.maxAttempts = Math.max(breakdown.maxAttempts, stoppedMaxCount);
+    breakdown.customerOptOut = Math.max(breakdown.customerOptOut, stoppedOptOutCount);
+    breakdown.total = Math.max(
+      stoppingTriggersCount,
+      breakdown.maxAttempts +
+        breakdown.customerOptOut +
+        breakdown.cooldownActive +
+        breakdown.contactHours +
+        breakdown.monetaryCeiling +
+        breakdown.dailyCap
+    );
+
+    return breakdown;
+  }
+
+  /**
+   * Update ground truth statistical counts for a single case
+   */
+  private updateGroundTruthStats(
+    c: { status: CaseStatus; shouldRecover: boolean | null; actions: { actionType: string }[] },
+    stats: {
+      shouldRecoverCount: number;
+      shouldNotRecoverCount: number;
+      truePositives: number;
+      falsePositives: number;
+      trueNegatives: number;
+      falseNegatives: number;
+      wastedIncentiveCount: number;
+      totalIncentivesApplied: number;
+    }
+  ) {
+    const isRecovered = c.status === 'RECOVERED';
+    if (c.shouldRecover) {
+      stats.shouldRecoverCount++;
+      if (isRecovered) {
+        stats.truePositives++;
+      } else {
+        stats.falseNegatives++;
+      }
+    } else {
+      stats.shouldNotRecoverCount++;
+      if (isRecovered) {
+        stats.falsePositives++;
+      } else {
+        stats.trueNegatives++;
+      }
+    }
+
+    const hasIncentive = c.actions.some((a) => a.actionType === 'apply_recovery_incentive');
+    if (hasIncentive) {
+      stats.totalIncentivesApplied++;
+      if (!c.shouldRecover) {
+        stats.wastedIncentiveCount++;
+      }
+    }
+  }
+
+  /**
+   * Aggregate case amounts, status counts, lane metrics, and root cause distributions
+   */
+  private aggregateCaseMetrics(
+    cases: Array<{
+      id: string;
+      lane: Lane;
+      status: CaseStatus;
+      amount: Prisma.Decimal | number;
+      incentiveUsed: Prisma.Decimal | number | null;
+      rootCause: string | null;
+      shouldRecover: boolean | null;
+      actions: { actionType: string }[];
+    }>
+  ) {
     let totalAtRisk = 0;
     let totalRecovered = 0;
     let totalIncentiveSpent = 0;
     let activeCasesCount = 0;
     let recoveredCasesCount = 0;
 
-    const laneMetrics = {
+    const laneMetrics: MetricSummary['laneMetrics'] = {
       payment: { atRisk: 0, recovered: 0, rate: 0, caseCount: 0 },
       checkout: { atRisk: 0, recovered: 0, rate: 0, caseCount: 0 },
       receivable: { atRisk: 0, recovered: 0, rate: 0, caseCount: 0 },
@@ -429,14 +709,16 @@ export class CaseService {
 
     const rootCauseBreakdown: Record<string, { count: number; recoveredCount: number; recoveredAmount: number }> = {};
 
-    let shouldRecoverCount = 0;
-    let shouldNotRecoverCount = 0;
-    let truePositives = 0;
-    let falsePositives = 0;
-    let trueNegatives = 0;
-    let falseNegatives = 0;
-    let wastedIncentiveCount = 0;
-    let totalIncentivesApplied = 0;
+    const stats = {
+      shouldRecoverCount: 0,
+      shouldNotRecoverCount: 0,
+      truePositives: 0,
+      falsePositives: 0,
+      trueNegatives: 0,
+      falseNegatives: 0,
+      wastedIncentiveCount: 0,
+      totalIncentivesApplied: 0,
+    };
 
     for (const c of cases) {
       const amt = Number(c.amount);
@@ -471,99 +753,58 @@ export class CaseService {
         rootCauseBreakdown[rootKey].recoveredAmount += amt;
       }
 
-      // Ground truth evaluation metrics
-      if (c.shouldRecover) {
-        shouldRecoverCount++;
-        if (c.status === 'RECOVERED') {
-          truePositives++;
-        } else {
-          falseNegatives++;
-        }
-      } else {
-        shouldNotRecoverCount++;
-        if (c.status === 'RECOVERED') {
-          falsePositives++;
-        } else {
-          trueNegatives++;
-        }
-      }
-
-      const hasIncentive = c.actions.some((a) => a.actionType === 'apply_recovery_incentive');
-      if (hasIncentive) {
-        totalIncentivesApplied++;
-        if (!c.shouldRecover) {
-          wastedIncentiveCount++;
-        }
-      }
+      this.updateGroundTruthStats(c, stats);
     }
 
-    // Compute recovery rates per lane
-    (['payment', 'checkout', 'receivable'] as const).forEach((l) => {
-      const totalLaneAmount = laneMetrics[l].atRisk + laneMetrics[l].recovered;
-      laneMetrics[l].rate = totalLaneAmount > 0 ? Math.round((laneMetrics[l].recovered / totalLaneAmount) * 100) : 0;
-    });
-
-    const totalCalculated = totalAtRisk + totalRecovered;
-    const recoveryRatePercent = totalCalculated > 0 ? Math.round((totalRecovered / totalCalculated) * 100) : 0;
-
-    // Query stopping rule audit logs to build breakdown
-    const stoppingTriggersCount = await prisma.auditLog.count({
-      where: { eventType: 'policy_blocked' },
-    });
-
-    const blockedLogs = await prisma.auditLog.findMany({
-      where: {
-        eventType: { in: ['policy_blocked', 'customer_opted_out'] },
-      },
-      select: {
-        eventType: true,
-        reason: true,
-      },
-      take: 200,
-    });
-
-    const stoppingRulesBreakdown = {
-      maxAttempts: 0,
-      customerOptOut: 0,
-      cooldownActive: 0,
-      contactHours: 0,
-      monetaryCeiling: 0,
-      dailyCap: 0,
-      total: stoppingTriggersCount,
+    return {
+      totalAtRisk,
+      totalRecovered,
+      totalIncentiveSpent,
+      activeCasesCount,
+      recoveredCasesCount,
+      laneMetrics,
+      rootCauseBreakdown,
+      stats,
     };
+  }
 
-    for (const log of blockedLogs) {
-      const reasonLower = (log.reason || '').toLowerCase();
-      if (log.eventType === 'customer_opted_out' || reasonLower.includes('opt') || reasonLower.includes('unsubscribe')) {
-        stoppingRulesBreakdown.customerOptOut++;
-      } else if (reasonLower.includes('max') || reasonLower.includes('attempt')) {
-        stoppingRulesBreakdown.maxAttempts++;
-      } else if (reasonLower.includes('cooldown') || reasonLower.includes('cool-down') || reasonLower.includes('wait')) {
-        stoppingRulesBreakdown.cooldownActive++;
-      } else if (reasonLower.includes('hour') || reasonLower.includes('time') || reasonLower.includes('night') || reasonLower.includes('window')) {
-        stoppingRulesBreakdown.contactHours++;
-      } else if (reasonLower.includes('ceiling') || reasonLower.includes('incentive')) {
-        stoppingRulesBreakdown.monetaryCeiling++;
-      } else if (reasonLower.includes('cap') || reasonLower.includes('daily')) {
-        stoppingRulesBreakdown.dailyCap++;
-      } else {
-        stoppingRulesBreakdown.maxAttempts++;
-      }
+  /**
+   * Compute recovery rates per lane
+   */
+  private calculateLaneRates(laneMetrics: MetricSummary['laneMetrics']) {
+    const lanes = ['payment', 'checkout', 'receivable'] as const;
+    for (const lane of lanes) {
+      const totalLaneAmount = laneMetrics[lane].atRisk + laneMetrics[lane].recovered;
+      laneMetrics[lane].rate = totalLaneAmount > 0 ? Math.round((laneMetrics[lane].recovered / totalLaneAmount) * 100) : 0;
     }
+  }
 
-    const stoppedMaxCount = await prisma.recoveryCase.count({ where: { ...where, status: 'STOPPED_MAX_ATTEMPTS' } });
-    const stoppedOptOutCount = await prisma.recoveryCase.count({ where: { ...where, status: 'STOPPED_OPTED_OUT' } });
-    stoppingRulesBreakdown.maxAttempts = Math.max(stoppingRulesBreakdown.maxAttempts, stoppedMaxCount);
-    stoppingRulesBreakdown.customerOptOut = Math.max(stoppingRulesBreakdown.customerOptOut, stoppedOptOutCount);
-    stoppingRulesBreakdown.total = Math.max(
-      stoppingTriggersCount,
-      stoppingRulesBreakdown.maxAttempts +
-        stoppingRulesBreakdown.customerOptOut +
-        stoppingRulesBreakdown.cooldownActive +
-        stoppingRulesBreakdown.contactHours +
-        stoppingRulesBreakdown.monetaryCeiling +
-        stoppingRulesBreakdown.dailyCap
-    );
+  /**
+   * Compute statistical benchmark metrics (recall, precision, F1, etc.)
+   */
+  private calculateEvaluationBenchmark(
+    totalEvaluated: number,
+    stats: {
+      shouldRecoverCount: number;
+      shouldNotRecoverCount: number;
+      truePositives: number;
+      falsePositives: number;
+      trueNegatives: number;
+      falseNegatives: number;
+      wastedIncentiveCount: number;
+      totalIncentivesApplied: number;
+    }
+  ): EvaluationBenchmark {
+    const {
+      shouldRecoverCount,
+      shouldNotRecoverCount,
+      truePositives,
+      falsePositives,
+      trueNegatives,
+      falseNegatives,
+      wastedIncentiveCount,
+      totalIncentivesApplied,
+    } = stats;
 
     const recall = shouldRecoverCount > 0 ? (truePositives / shouldRecoverCount) * 100 : 84.6;
     const precision = truePositives + falsePositives > 0 ? (truePositives / (truePositives + falsePositives)) * 100 : 92.3;
@@ -571,8 +812,8 @@ export class CaseService {
     const wastedIncentiveRate = totalIncentivesApplied > 0 ? (wastedIncentiveCount / totalIncentivesApplied) * 100 : 3.6;
     const f1Score = precision + recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 88.2;
 
-    const evaluation = {
-      totalEvaluated: cases.length,
+    return {
+      totalEvaluated,
       shouldRecoverCount,
       shouldNotRecoverCount,
       truePositives,
@@ -585,20 +826,50 @@ export class CaseService {
       wastedIncentiveRate: Number(wastedIncentiveRate.toFixed(1)),
       f1Score: Number(f1Score.toFixed(1)),
     };
+  }
+
+  /**
+   * Compute live financial and recovery metrics
+   */
+  async getMetrics(merchantId?: string): Promise<MetricSummary> {
+    const where: Prisma.RecoveryCaseWhereInput = merchantId ? { merchantId } : {};
+
+    const cases = await prisma.recoveryCase.findMany({
+      where,
+      select: {
+        id: true,
+        lane: true,
+        status: true,
+        amount: true,
+        incentiveUsed: true,
+        rootCause: true,
+        shouldRecover: true,
+        actions: { select: { actionType: true } },
+      },
+    });
+
+    const aggregated = this.aggregateCaseMetrics(cases);
+    this.calculateLaneRates(aggregated.laneMetrics);
+
+    const totalCalculated = aggregated.totalAtRisk + aggregated.totalRecovered;
+    const recoveryRatePercent = totalCalculated > 0 ? Math.round((aggregated.totalRecovered / totalCalculated) * 100) : 0;
+
+    const stoppingRulesBreakdown = await this.getStoppingRulesBreakdown(where);
+    const evaluation = this.calculateEvaluationBenchmark(cases.length, aggregated.stats);
 
     return {
-      totalAtRisk,
-      totalRecovered,
+      totalAtRisk: aggregated.totalAtRisk,
+      totalRecovered: aggregated.totalRecovered,
       recoveryRatePercent,
-      totalIncentiveSpent,
-      netRecovered: Math.max(0, totalRecovered - totalIncentiveSpent),
-      activeCasesCount,
-      recoveredCasesCount,
+      totalIncentiveSpent: aggregated.totalIncentiveSpent,
+      netRecovered: Math.max(0, aggregated.totalRecovered - aggregated.totalIncentiveSpent),
+      activeCasesCount: aggregated.activeCasesCount,
+      recoveredCasesCount: aggregated.recoveredCasesCount,
       stoppingRuleTriggersCount: stoppingRulesBreakdown.total,
       stoppingRulesBreakdown,
       evaluation,
-      laneMetrics,
-      rootCauseBreakdown,
+      laneMetrics: aggregated.laneMetrics,
+      rootCauseBreakdown: aggregated.rootCauseBreakdown,
     };
   }
 
@@ -785,6 +1056,134 @@ export class CaseService {
   }
 
   /**
+   * Helper: Ensure merchant exists or fallback to first/default
+   */
+  private async ensureMerchant(merchantId?: string) {
+    if (merchantId) {
+      const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+      if (merchant) return merchant;
+    }
+
+    const existing = await prisma.merchant.findFirst();
+    if (existing) return existing;
+
+    return prisma.merchant.create({
+      data: {
+        name: 'Reclaim Demo Merchant Store',
+        timezone: 'Asia/Kolkata',
+      },
+    });
+  }
+
+  /**
+   * Helper: Ensure customer exists or create a default demo customer
+   */
+  private async ensureCustomer(
+    merchantId: string,
+    customerData: { name?: string; email?: string; phone?: string }
+  ) {
+    const email = (customerData.email ?? 'demo_customer@example.com').toLowerCase();
+    const existing = await prisma.customer.findFirst({ where: { email } });
+    if (existing) return existing;
+
+    return prisma.customer.create({
+      data: {
+        merchantId,
+        name: customerData.name ?? 'Vikram Malhotra',
+        email,
+        phone: customerData.phone ?? '+919876543210',
+        optedOut: false,
+      },
+    });
+  }
+
+  /**
+   * Helper: Create payment attempt record for PAYMENT lane
+   */
+  private async createPaymentSource(
+    customerId: string,
+    amount: number,
+    currency: string,
+    failureCode?: string,
+    failureReason?: string
+  ): Promise<string> {
+    const paymentAttempt = await prisma.paymentAttempt.create({
+      data: {
+        customerId,
+        orderId: `order_${Date.now()}`,
+        amount,
+        currency,
+        status: PaymentStatus.FAILED,
+        failureCode: failureCode ?? 'BAD_REQUEST_PAYMENT_TIMED_OUT',
+        failureReasonRaw: failureReason ?? 'Payment processing failed',
+        paymentMethod: 'card',
+      },
+    });
+    return paymentAttempt.id;
+  }
+
+  /**
+   * Helper: Create checkout session record for CHECKOUT lane
+   */
+  private async createCheckoutSource(
+    customerId: string,
+    amount: number,
+    currency: string
+  ): Promise<string> {
+    const checkoutSession = await prisma.checkoutSession.create({
+      data: {
+        customerId,
+        cartValue: amount,
+        currency,
+        status: CheckoutStatus.ABANDONED,
+        abandonedAt: new Date(),
+        itemsJson: [{ sku: 'PROD_001', name: 'Premium Cloud Subscription', quantity: 1, price: amount }],
+      },
+    });
+    return checkoutSession.id;
+  }
+
+  /**
+   * Helper: Create invoice record for RECEIVABLE lane
+   */
+  private async createInvoiceSource(
+    customerId: string,
+    amount: number,
+    currency: string
+  ): Promise<string> {
+    const invoice = await prisma.invoice.create({
+      data: {
+        customerId,
+        invoiceNumber: `INV-${Date.now()}`,
+        amountDue: amount,
+        currency,
+        dueDate: new Date(Date.now() - 86400000),
+        status: InvoiceStatus.OVERDUE,
+      },
+    });
+    return invoice.id;
+  }
+
+  /**
+   * Helper: Create source entity based on case lane
+   */
+  private async createSourceEntity(
+    lane: Lane,
+    customerId: string,
+    amount: number,
+    params: { currency?: string; failureCode?: string; failureReason?: string }
+  ): Promise<string> {
+    const currency = params.currency ?? 'INR';
+    if (lane === Lane.PAYMENT) {
+      return this.createPaymentSource(customerId, amount, currency, params.failureCode, params.failureReason);
+    }
+    if (lane === Lane.CHECKOUT) {
+      return this.createCheckoutSource(customerId, amount, currency);
+    }
+    return this.createInvoiceSource(customerId, amount, currency);
+  }
+
+  /**
    * Create a recovery case (Admin / Test fixture)
    */
   async createCase(params: {
@@ -800,79 +1199,16 @@ export class CaseService {
     failureReason?: string;
     status?: CaseStatus;
   }) {
-    let merchant = params.merchantId
-      ? await prisma.merchant.findUnique({ where: { id: params.merchantId } })
-      : await prisma.merchant.findFirst();
-
-    if (!merchant) {
-      merchant = await prisma.merchant.create({
-        data: {
-          name: 'Reclaim Demo Merchant Store',
-          timezone: 'Asia/Kolkata',
-        },
-      });
-    }
-
-    const email = (params.customerEmail || 'demo_customer@example.com').toLowerCase();
-    let customer = await prisma.customer.findFirst({
-      where: { email },
+    const merchant = await this.ensureMerchant(params.merchantId);
+    const customer = await this.ensureCustomer(merchant.id, {
+      name: params.customerName,
+      email: params.customerEmail,
+      phone: params.customerPhone,
     });
 
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: {
-          merchantId: merchant.id,
-          name: params.customerName || 'Vikram Malhotra',
-          email,
-          phone: params.customerPhone || '+919876543210',
-          optedOut: false,
-        },
-      });
-    }
-
-    const lane = params.lane || Lane.PAYMENT;
-    const amount = Number(params.amount || 2499);
-    let sourceRefId = '';
-
-    if (lane === Lane.PAYMENT) {
-      const paymentAttempt = await prisma.paymentAttempt.create({
-        data: {
-          customerId: customer.id,
-          orderId: `order_${Date.now()}`,
-          amount,
-          currency: params.currency || 'INR',
-          status: PaymentStatus.FAILED,
-          failureCode: params.failureCode || 'BAD_REQUEST_PAYMENT_TIMED_OUT',
-          failureReasonRaw: params.failureReason || 'Payment processing failed',
-          paymentMethod: 'card',
-        },
-      });
-      sourceRefId = paymentAttempt.id;
-    } else if (lane === Lane.CHECKOUT) {
-      const checkoutSession = await prisma.checkoutSession.create({
-        data: {
-          customerId: customer.id,
-          cartValue: amount,
-          currency: params.currency || 'INR',
-          status: CheckoutStatus.ABANDONED,
-          abandonedAt: new Date(),
-          itemsJson: [{ sku: 'PROD_001', name: 'Premium Cloud Subscription', quantity: 1, price: amount }],
-        },
-      });
-      sourceRefId = checkoutSession.id;
-    } else {
-      const invoice = await prisma.invoice.create({
-        data: {
-          customerId: customer.id,
-          invoiceNumber: `INV-${Date.now()}`,
-          amountDue: amount,
-          currency: params.currency || 'INR',
-          dueDate: new Date(Date.now() - 86400000),
-          status: InvoiceStatus.OVERDUE,
-        },
-      });
-      sourceRefId = invoice.id;
-    }
+    const lane = params.lane ?? Lane.PAYMENT;
+    const amount = Number(params.amount ?? 2499);
+    const sourceRefId = await this.createSourceEntity(lane, customer.id, amount, params);
 
     const recoveryCase = await prisma.recoveryCase.create({
       data: {
@@ -880,8 +1216,8 @@ export class CaseService {
         customerId: customer.id,
         lane,
         sourceRefId,
-        rootCause: params.rootCause || 'bank_technical_error',
-        status: params.status || CaseStatus.OPEN,
+        rootCause: params.rootCause ?? 'bank_technical_error',
+        status: params.status ?? CaseStatus.OPEN,
         amount,
         shouldRecover: true,
       },

@@ -1,6 +1,6 @@
 import { BoundedActionType, DiagnosisResult, RootCauseBucket } from '../types';
 import { geminiAdapter } from '../integrations/gemini/gemini.adapter';
-import { logger } from '../lib/logger';
+import { logger, sanitizeLog } from '../lib/logger';
 
 interface KnownRuleMapping {
   rootCause: RootCauseBucket;
@@ -224,7 +224,7 @@ export class DiagnosisService {
 
     // 2. Ambiguous / Unknown Failure / Chaos Simulation: Delegate to Gemini Structured Output (or fallback)
     logger.info(
-      { rawReason: params.failureReasonRaw, code, simulateOutage: params.simulateOutage },
+      { rawReason: sanitizeLog(params.failureReasonRaw), code: sanitizeLog(code), simulateOutage: params.simulateOutage },
       '[Diagnosis Service] Routing to Gemini adapter'
     );
 

@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { auditService } from '../services/audit.service';
-import { logger } from '../lib/logger';
+import { logger, sanitizeLog } from '../lib/logger';
 import { cacheService } from '../lib/cache';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
@@ -101,7 +101,7 @@ export class PolicyController {
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error({ err: message, policyId: req.params.id }, 'Update policy config error');
+      logger.error({ err: sanitizeLog(message), policyId: sanitizeLog(req.params.id) }, 'Update policy config error');
       res.status(500).json({
         error: {
           code: 'UPDATE_FAILED',

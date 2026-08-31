@@ -2,10 +2,13 @@ import { Response } from 'express';
 import { caseService } from '../services/case.service';
 import { auditService } from '../services/audit.service';
 import { prisma } from '../lib/prisma';
-import { logger } from '../lib/logger';
+import { logger, sanitizeLog } from '../lib/logger';
 import { cacheService } from '../lib/cache';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { CaseStatus, Lane } from '@prisma/client';
+
+const FORBIDDEN_ACCESS_MESSAGE = 'You do not have access to this case';
+const DEFAULT_UNKNOWN_ERROR = 'Unknown error';
 
 export class CaseController {
   async listCases(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -23,8 +26,8 @@ export class CaseController {
 
       res.json(result);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      logger.error({ err: errorMessage }, 'List cases controller error');
+      const errorMessage = err instanceof Error ? err.message : DEFAULT_UNKNOWN_ERROR;
+      logger.error({ err: sanitizeLog(errorMessage) }, 'List cases controller error');
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',
@@ -55,7 +58,7 @@ export class CaseController {
         res.status(403).json({
           error: {
             code: 'FORBIDDEN',
-            message: 'You do not have access to this case',
+            message: FORBIDDEN_ACCESS_MESSAGE,
           },
         });
         return;
@@ -92,8 +95,8 @@ export class CaseController {
         auditTrail,
       });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      logger.error({ err: errorMessage, caseId: req.params.id }, 'Get case controller error');
+      const errorMessage = err instanceof Error ? err.message : DEFAULT_UNKNOWN_ERROR;
+      logger.error({ err: sanitizeLog(errorMessage), caseId: sanitizeLog(req.params.id) }, 'Get case controller error');
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',
@@ -125,7 +128,7 @@ export class CaseController {
         res.status(403).json({
           error: {
             code: 'FORBIDDEN',
-            message: 'You do not have access to this case',
+            message: FORBIDDEN_ACCESS_MESSAGE,
           },
         });
         return;
@@ -142,7 +145,7 @@ export class CaseController {
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to execute case action';
-      logger.error({ err: errorMessage, caseId: req.params.id }, 'Trigger case action error');
+      logger.error({ err: sanitizeLog(errorMessage), caseId: sanitizeLog(req.params.id) }, 'Trigger case action error');
       res.status(500).json({
         error: {
           code: 'ACTION_FAILED',
@@ -187,8 +190,8 @@ export class CaseController {
         case: recoveryCase,
       });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      logger.error({ err: errorMessage }, 'Create case controller error');
+      const errorMessage = err instanceof Error ? err.message : DEFAULT_UNKNOWN_ERROR;
+      logger.error({ err: sanitizeLog(errorMessage) }, 'Create case controller error');
       res.status(500).json({
         error: {
           code: 'CREATE_CASE_FAILED',
@@ -227,7 +230,7 @@ export class CaseController {
         res.status(403).json({
           error: {
             code: 'FORBIDDEN',
-            message: 'You do not have access to this case',
+            message: FORBIDDEN_ACCESS_MESSAGE,
           },
         });
         return;
@@ -256,7 +259,7 @@ export class CaseController {
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to resolve escalated case';
-      logger.error({ err: errorMessage, caseId: req.params.id }, 'Resolve escalation error');
+      logger.error({ err: sanitizeLog(errorMessage), caseId: sanitizeLog(req.params.id) }, 'Resolve escalation error');
       res.status(500).json({
         error: {
           code: 'RESOLVE_FAILED',
@@ -323,7 +326,7 @@ export class CaseController {
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to record promise to pay';
-      logger.error({ err: errorMessage, caseId: req.params.id }, 'Log promise to pay error');
+      logger.error({ err: sanitizeLog(errorMessage), caseId: sanitizeLog(req.params.id) }, 'Log promise to pay error');
       res.status(500).json({
         error: {
           code: 'PROMISE_TO_PAY_FAILED',
@@ -496,7 +499,7 @@ export class CaseController {
       await cacheService.invalidateMetrics(kase.merchantId || undefined);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process customer action';
-      logger.error({ err: errorMessage, caseId: req.params.id }, 'Customer action error');
+      logger.error({ err: sanitizeLog(errorMessage), caseId: sanitizeLog(req.params.id) }, 'Customer action error');
       res.status(500).json({
         error: {
           code: 'CUSTOMER_ACTION_FAILED',
