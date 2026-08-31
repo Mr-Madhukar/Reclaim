@@ -152,6 +152,52 @@ export class CaseController {
     }
   }
 
+  async createCase(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const {
+        lane,
+        amount,
+        currency,
+        customerName,
+        customerEmail,
+        customerPhone,
+        rootCause,
+        failureCode,
+        failureReason,
+        status,
+      } = req.body || {};
+
+      const recoveryCase = await caseService.createCase({
+        merchantId: req.user?.merchantId,
+        lane,
+        amount,
+        currency,
+        customerName,
+        customerEmail,
+        customerPhone,
+        rootCause,
+        failureCode,
+        failureReason,
+        status,
+      });
+
+      res.status(201).json({
+        message: 'Recovery case created successfully',
+        id: recoveryCase.id,
+        case: recoveryCase,
+      });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error({ err: errorMessage }, 'Create case controller error');
+      res.status(500).json({
+        error: {
+          code: 'CREATE_CASE_FAILED',
+          message: 'Failed to create recovery case',
+        },
+      });
+    }
+  }
+
   async resolveEscalation(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -162,12 +208,47 @@ export class CaseController {
         return;
       }
 
+      const existing = await prisma.recoveryCase.findUnique({
+        where: { id },
+        select: { id: true, merchantId: true },
+      });
+
+      if (!existing) {
+        res.status(404).json({
+          error: {
+            code: 'CASE_NOT_FOUND',
+            message: `Case ${id} not found`,
+          },
+        });
+        return;
+      }
+
+      if (req.user.merchantId && existing.merchantId !== req.user.merchantId) {
+        res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You do not have access to this case',
+          },
+        });
+        return;
+      }
+
       const updated = await caseService.resolveEscalation({
         caseId: id,
         userId: req.user.userId,
         resolution,
         notes,
       });
+
+      if (!updated) {
+        res.status(404).json({
+          error: {
+            code: 'CASE_NOT_FOUND',
+            message: `Case ${id} not found`,
+          },
+        });
+        return;
+      }
 
       res.json({
         message: `Case successfully resolved as '${resolution}'`,

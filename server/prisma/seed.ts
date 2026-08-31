@@ -34,35 +34,57 @@ async function main() {
   console.log(`✅ Created Merchant: ${merchant.name} (${merchant.id})`);
 
   // 2. Create RBAC Users
-  const passwordHash = await bcrypt.hash('Demo@12345', 10);
+  const adminPasswordHash = await bcrypt.hash('Admin@123456', 10);
+  const demoPasswordHash = await bcrypt.hash('Demo@12345', 10);
 
   await prisma.user.createMany({
     data: [
       {
+        email: 'admin@reclaim.local',
+        name: 'Admin User',
+        passwordHash: adminPasswordHash,
+        role: Role.ADMIN,
+        merchantId: merchant.id,
+      },
+      {
         email: 'admin@reclaim.demo',
         name: 'Admin User',
-        passwordHash,
+        passwordHash: adminPasswordHash,
         role: Role.ADMIN,
+        merchantId: merchant.id,
+      },
+      {
+        email: 'ops@reclaim.local',
+        name: 'Operations Viewer',
+        passwordHash: adminPasswordHash,
+        role: Role.OPS_VIEWER,
         merchantId: merchant.id,
       },
       {
         email: 'ops@reclaim.demo',
         name: 'Operations Viewer',
-        passwordHash,
+        passwordHash: demoPasswordHash,
         role: Role.OPS_VIEWER,
+        merchantId: merchant.id,
+      },
+      {
+        email: 'reviewer@reclaim.local',
+        name: 'Human Reviewer',
+        passwordHash: adminPasswordHash,
+        role: Role.REVIEWER,
         merchantId: merchant.id,
       },
       {
         email: 'reviewer@reclaim.demo',
         name: 'Human Reviewer',
-        passwordHash,
+        passwordHash: demoPasswordHash,
         role: Role.REVIEWER,
         merchantId: merchant.id,
       },
     ],
   });
 
-  console.log('✅ Created Demo Users (Admin, Ops, Reviewer)');
+  console.log('✅ Created Demo and Local Users (Admin, Ops, Reviewer)');
 
   // 3. Create Default Policy Configurations for all 3 lanes
   await prisma.policyConfig.createMany({

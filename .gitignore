@@ -50,3 +50,8 @@ redis-data/
 !readme.md
 !**/README.md
 !**/readme.md
+
+# API Specs & Test Collections (Local Only)
+openapi.json
+openapi.yaml
+postman_collection.json

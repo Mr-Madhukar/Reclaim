@@ -2,12 +2,22 @@ import { Router } from 'express';
 import { caseController } from '../controllers/case.controller';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
-import { caseFilterSchema, escalateResponseSchema, promiseToPaySchema } from '../schemas';
+import {
+  caseFilterSchema,
+  createCaseSchema,
+  customerActionSchema,
+  escalateResponseSchema,
+  promiseToPaySchema,
+} from '../schemas';
 
 export const caseRouter = Router();
 
 caseRouter.get('/', authenticateToken, validateQuery(caseFilterSchema), (req, res) => {
   caseController.listCases(req, res);
+});
+
+caseRouter.post('/', authenticateToken, validateBody(createCaseSchema), (req, res) => {
+  caseController.createCase(req, res);
 });
 
 caseRouter.get('/:id', authenticateToken, (req, res) => {
@@ -26,6 +36,7 @@ caseRouter.post('/:id/promise-to-pay', authenticateToken, requireRole(['ADMIN', 
   caseController.logPromiseToPay(req, res);
 });
 
-caseRouter.post('/:id/customer-action', (req, res) => {
+caseRouter.post('/:id/customer-action', validateBody(customerActionSchema), (req, res) => {
   caseController.handleCustomerAction(req, res);
 });
+

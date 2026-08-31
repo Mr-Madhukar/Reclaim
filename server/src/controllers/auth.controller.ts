@@ -104,6 +104,7 @@ export class AuthController {
           merchantId: user.merchantId,
         },
         accessToken,
+        refreshToken,
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -174,7 +175,9 @@ export class AuthController {
   }
 
   async refreshToken(req: Request, res: Response): Promise<void> {
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'] || bearerToken;
 
     if (!refreshToken) {
       res.status(401).json({
@@ -187,7 +190,12 @@ export class AuthController {
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as AuthUserPayload;
+      let decoded: AuthUserPayload;
+      try {
+        decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as AuthUserPayload;
+      } catch {
+        decoded = jwt.verify(refreshToken, env.JWT_SECRET) as AuthUserPayload;
+      }
 
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
@@ -211,6 +219,7 @@ export class AuthController {
       };
 
       const newAccessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
+      const newRefreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
       res.cookie('accessToken', newAccessToken, {
         httpOnly: true,
@@ -219,7 +228,14 @@ export class AuthController {
         maxAge: 24 * 60 * 60 * 1000,
       });
 
-      res.json({ accessToken: newAccessToken });
+      res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     } catch {
       res.status(401).json({
         error: {

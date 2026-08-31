@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { CaseStatus, Lane, Prisma } from '@prisma/client';
+import { CaseStatus, Lane, Prisma, PaymentStatus, CheckoutStatus, InvoiceStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { cacheService } from '../lib/cache';
@@ -739,7 +739,7 @@ export class CaseService {
     resolution: 'RECOVERED' | 'EXPIRED';
     notes: string;
   }) {
-    const kase = await prisma.recoveryCase.findUniqueOrThrow({
+    const kase = await prisma.recoveryCase.findUnique({
       where: { id: params.caseId },
       select: {
         id: true,
@@ -747,6 +747,10 @@ export class CaseService {
         merchantId: true,
       },
     });
+
+    if (!kase) {
+      return null;
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.recoveryCase.update({
@@ -778,6 +782,127 @@ export class CaseService {
     await cacheService.invalidateMetrics(kase.merchantId || undefined);
 
     return result;
+  }
+
+  /**
+   * Create a recovery case (Admin / Test fixture)
+   */
+  async createCase(params: {
+    merchantId?: string;
+    lane?: Lane;
+    amount?: number;
+    currency?: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    rootCause?: string;
+    failureCode?: string;
+    failureReason?: string;
+    status?: CaseStatus;
+  }) {
+    let merchant = params.merchantId
+      ? await prisma.merchant.findUnique({ where: { id: params.merchantId } })
+      : await prisma.merchant.findFirst();
+
+    if (!merchant) {
+      merchant = await prisma.merchant.create({
+        data: {
+          name: 'Reclaim Demo Merchant Store',
+          timezone: 'Asia/Kolkata',
+        },
+      });
+    }
+
+    const email = (params.customerEmail || 'demo_customer@example.com').toLowerCase();
+    let customer = await prisma.customer.findFirst({
+      where: { email },
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          merchantId: merchant.id,
+          name: params.customerName || 'Vikram Malhotra',
+          email,
+          phone: params.customerPhone || '+919876543210',
+          optedOut: false,
+        },
+      });
+    }
+
+    const lane = params.lane || Lane.PAYMENT;
+    const amount = Number(params.amount || 2499);
+    let sourceRefId = '';
+
+    if (lane === Lane.PAYMENT) {
+      const paymentAttempt = await prisma.paymentAttempt.create({
+        data: {
+          customerId: customer.id,
+          orderId: `order_${Date.now()}`,
+          amount,
+          currency: params.currency || 'INR',
+          status: PaymentStatus.FAILED,
+          failureCode: params.failureCode || 'BAD_REQUEST_PAYMENT_TIMED_OUT',
+          failureReasonRaw: params.failureReason || 'Payment processing failed',
+          paymentMethod: 'card',
+        },
+      });
+      sourceRefId = paymentAttempt.id;
+    } else if (lane === Lane.CHECKOUT) {
+      const checkoutSession = await prisma.checkoutSession.create({
+        data: {
+          customerId: customer.id,
+          cartValue: amount,
+          currency: params.currency || 'INR',
+          status: CheckoutStatus.ABANDONED,
+          abandonedAt: new Date(),
+          itemsJson: [{ sku: 'PROD_001', name: 'Premium Cloud Subscription', quantity: 1, price: amount }],
+        },
+      });
+      sourceRefId = checkoutSession.id;
+    } else {
+      const invoice = await prisma.invoice.create({
+        data: {
+          customerId: customer.id,
+          invoiceNumber: `INV-${Date.now()}`,
+          amountDue: amount,
+          currency: params.currency || 'INR',
+          dueDate: new Date(Date.now() - 86400000),
+          status: InvoiceStatus.OVERDUE,
+        },
+      });
+      sourceRefId = invoice.id;
+    }
+
+    const recoveryCase = await prisma.recoveryCase.create({
+      data: {
+        merchantId: merchant.id,
+        customerId: customer.id,
+        lane,
+        sourceRefId,
+        rootCause: params.rootCause || 'bank_technical_error',
+        status: params.status || CaseStatus.OPEN,
+        amount,
+        shouldRecover: true,
+      },
+      include: {
+        customer: true,
+        actions: true,
+      },
+    });
+
+    await auditService.log({
+      actor: 'system',
+      entityType: 'RecoveryCase',
+      entityId: recoveryCase.id,
+      eventType: 'case_created',
+      afterJson: { lane, amount, customerId: customer.id },
+      reason: 'Case created via API creation endpoint',
+    });
+
+    await cacheService.invalidateMetrics(merchant.id);
+
+    return recoveryCase;
   }
 }
 

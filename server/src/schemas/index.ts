@@ -43,3 +43,40 @@ export const webhookPayloadSchema = z.object({
   event: z.string(),
   payload: z.record(z.unknown()),
 });
+
+export const customerActionSchema = z.object({
+  action: z.enum([
+    'PAY_SUCCESS',
+    'OPT_OUT',
+    'PROMISE_TO_PAY',
+    'GRACE_PERIOD',
+    'UPDATE_PAYMENT_METHOD',
+  ]),
+  paymentMethod: z.string().optional(),
+  promisedDate: z.string().optional(),
+  promisedAmount: z.number().positive().optional(),
+  optOutReason: z.string().optional(),
+  paymentDetails: z
+    .object({
+      method: z.string().optional(),
+      identifier: z.string().optional(),
+    })
+    .optional(),
+});
+
+export const createCaseSchema = z.object({
+  lane: z.enum(['PAYMENT', 'CHECKOUT', 'RECEIVABLE']).optional().default('PAYMENT'),
+  amount: z.number().positive().optional().default(2499),
+  currency: z.string().optional().default('INR'),
+  customerName: z.string().optional().default('Vikram Malhotra'),
+  customerEmail: z.string().email().optional().default('demo_customer@example.com'),
+  customerPhone: z.string().optional().default('+919876543210'),
+  rootCause: z.string().optional().default('bank_technical_error'),
+  failureCode: z.string().optional().default('BAD_REQUEST_PAYMENT_TIMED_OUT'),
+  failureReason: z.string().optional().default('Payment timed out during 3DS verification'),
+  status: z
+    .enum(['OPEN', 'RECOVERED', 'STOPPED_MAX_ATTEMPTS', 'STOPPED_OPTED_OUT', 'ESCALATED_TO_HUMAN', 'EXPIRED'])
+    .optional()
+    .default('OPEN'),
+});
+
