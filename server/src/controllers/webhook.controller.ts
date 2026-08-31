@@ -7,7 +7,240 @@ import { logger } from '../lib/logger';
 import { cacheService } from '../lib/cache';
 import { Lane, PaymentStatus, InvoiceStatus } from '@prisma/client';
 
+export const WEBHOOK_EVENTS = {
+  PAYMENT_FAILED: 'payment.failed',
+  PAYMENT_CAPTURED: 'payment.captured',
+  ORDER_PAID: 'order.paid',
+  INVOICE_OVERDUE: 'invoice.overdue',
+} as const;
+
+const DEFAULT_CUSTOMER_NAME = 'Vikram Malhotra';
+const FALLBACK_NAMES = ['Rohit Sharma', 'Ananya Iyer', 'Siddharth Verma', 'Deepika Rao', DEFAULT_CUSTOMER_NAME];
+
+interface WebhookEntity {
+  id?: string;
+  amount?: number | string;
+  amount_due?: number | string;
+  currency?: string;
+  status?: string;
+  method?: string;
+  error_code?: string;
+  error_description?: string;
+  email?: string;
+  contact?: string;
+  name?: string;
+  order_id?: string;
+  expire_by?: number;
+  customer_name?: string;
+  customer_email?: string;
+  customer_contact?: string;
+  notes?: {
+    customer_name?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface WebhookPayload {
+  payment?: { entity?: WebhookEntity };
+  order?: { entity?: WebhookEntity };
+  invoice?: { entity?: WebhookEntity };
+  [key: string]: unknown;
+}
+
 export class WebhookController {
+  private verifySignature(rawBody: string, signature: string): boolean {
+    const expectedSignature = crypto
+      .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
+      .update(rawBody)
+      .digest('hex');
+
+    return (
+      signature.length === expectedSignature.length &&
+      crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+    );
+  }
+
+  private async handlePaymentFailed(payload: WebhookPayload): Promise<void> {
+    const payment = payload?.payment?.entity;
+    if (!payment) return;
+
+    const merchant = await prisma.merchant.findFirst();
+    if (!merchant) return;
+
+    const customerNameInput = payment.notes?.customer_name || payment.name;
+    let customer = await prisma.customer.findFirst({
+      where: { email: payment.email || 'customer@example.com' },
+    });
+
+    if (!customer) {
+      const randomName = FALLBACK_NAMES[crypto.randomInt(0, FALLBACK_NAMES.length)];
+      const resolvedName = customerNameInput || randomName;
+      const emailPrefix = resolvedName.toLowerCase().replace(/\s+/g, '.');
+      const randomSuffix = crypto.randomInt(100, 999);
+      customer = await prisma.customer.create({
+        data: {
+          merchantId: merchant.id,
+          name: customerNameInput || payment.notes?.customer_name || payment.name || randomName,
+          email: payment.email || `${emailPrefix}.${randomSuffix}@example.com`,
+          phone: payment.contact || '+919876543210',
+        },
+      });
+    } else if (customerNameInput && customer.name !== customerNameInput) {
+      customer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: { name: customerNameInput },
+      });
+    }
+
+    const paymentAttempt = await prisma.paymentAttempt.create({
+      data: {
+        customerId: customer.id,
+        orderId: payment.order_id || payment.id || 'unknown',
+        amount: Number(payment.amount || 0) / 100, // paise to INR
+        currency: payment.currency || 'INR',
+        status: PaymentStatus.FAILED,
+        failureCode: payment.error_code || 'GATEWAY_ERROR',
+        failureReasonRaw: payment.error_description || 'Payment processing failed',
+        paymentMethod: payment.method || 'card',
+      },
+    });
+
+    const recoveryCase = await prisma.recoveryCase.create({
+      data: {
+        merchantId: merchant.id,
+        customerId: customer.id,
+        lane: Lane.PAYMENT,
+        sourceRefId: paymentAttempt.id,
+        rootCause: payment.error_code?.toLowerCase() || 'unknown',
+        status: 'OPEN',
+        amount: Number(payment.amount || 0) / 100,
+        shouldRecover: !customer.optedOut,
+      },
+    });
+
+    await auditService.log({
+      actor: 'system',
+      entityType: 'RecoveryCase',
+      entityId: recoveryCase.id,
+      eventType: 'case_created',
+      afterJson: { event: WEBHOOK_EVENTS.PAYMENT_FAILED, paymentId: payment.id, amount: Number(payment.amount || 0) / 100 },
+      reason: `Recovery case opened via Razorpay webhook: ${payment.error_description || 'Payment Failed'}`,
+    });
+
+    await cacheService.invalidateMetrics(merchant.id);
+  }
+
+  private async handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
+    const payment = payload?.payment?.entity || payload?.order?.entity;
+    if (!payment) return;
+
+    const paymentAttempt = await prisma.paymentAttempt.findFirst({
+      where: { orderId: payment.order_id || payment.id || '' },
+      select: { id: true },
+    });
+
+    if (!paymentAttempt) return;
+
+    const recoveryCase = await prisma.recoveryCase.findFirst({
+      where: { sourceRefId: paymentAttempt.id, status: 'OPEN' },
+      select: { id: true, amount: true, merchantId: true },
+    });
+
+    if (!recoveryCase) return;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.recoveryCase.update({
+        where: { id: recoveryCase.id },
+        data: {
+          status: 'RECOVERED',
+          closedAt: new Date(),
+          closedReason: `Payment captured successfully via webhook (${payment.id})`,
+        },
+      });
+
+      await auditService.log(
+        {
+          actor: 'system',
+          entityType: 'RecoveryCase',
+          entityId: recoveryCase.id,
+          eventType: 'case_recovered',
+          afterJson: { paymentId: payment.id, amount: Number(recoveryCase.amount) },
+          reason: `Case recovered: Payment captured on Razorpay (${payment.id})`,
+        },
+        tx
+      );
+    });
+
+    await cacheService.invalidateMetrics(recoveryCase.merchantId || undefined);
+  }
+
+  private async handleInvoiceOverdue(payload: WebhookPayload): Promise<void> {
+    const invoiceData = payload?.invoice?.entity;
+    if (!invoiceData) return;
+
+    const merchant = await prisma.merchant.findFirst({
+      select: { id: true },
+    });
+    if (!merchant) return;
+
+    let customer = await prisma.customer.findFirst({
+      where: { email: invoiceData.customer_email || 'b2b@example.com' },
+      select: { id: true, optedOut: true },
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          merchantId: merchant.id,
+          name: invoiceData.customer_name || 'B2B Client',
+          email: invoiceData.customer_email || `b2b_${Date.now()}@example.com`,
+          phone: invoiceData.customer_contact,
+        },
+        select: { id: true, optedOut: true },
+      });
+    } else if (invoiceData.customer_name) {
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: { name: invoiceData.customer_name },
+      });
+    }
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        customerId: customer.id,
+        invoiceNumber: invoiceData.id || `INV-${Date.now()}`,
+        amountDue: Number(invoiceData.amount_due || invoiceData.amount) / 100,
+        dueDate: new Date(invoiceData.expire_by ? invoiceData.expire_by * 1000 : Date.now() - 86400000),
+        status: InvoiceStatus.OVERDUE,
+      },
+    });
+
+    const recoveryCase = await prisma.recoveryCase.create({
+      data: {
+        merchantId: merchant.id,
+        customerId: customer.id,
+        lane: Lane.RECEIVABLE,
+        sourceRefId: invoice.id,
+        rootCause: 'unknown',
+        status: 'OPEN',
+        amount: Number(invoice.amountDue),
+        shouldRecover: !customer.optedOut,
+      },
+    });
+
+    await auditService.log({
+      actor: 'system',
+      entityType: 'RecoveryCase',
+      entityId: recoveryCase.id,
+      eventType: 'case_created',
+      afterJson: { event: WEBHOOK_EVENTS.INVOICE_OVERDUE, invoiceId: invoice.id, amountDue: Number(invoice.amountDue) },
+      reason: `Receivables case created for overdue invoice ${invoice.invoiceNumber}`,
+    });
+
+    await cacheService.invalidateMetrics(merchant.id);
+  }
+
   async handleRazorpayWebhook(req: Request, res: Response): Promise<void> {
     const signature = req.headers['x-razorpay-signature'] as string;
 
@@ -22,17 +255,7 @@ export class WebhookController {
     }
 
     const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    const expectedSignature = crypto
-      .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
-      .update(rawBody)
-      .digest('hex');
-
-    // Timing-safe signature comparison
-    const isSignatureValid =
-      signature.length === expectedSignature.length &&
-      crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
-
-    if (!isSignatureValid) {
+    if (!this.verifySignature(rawBody, signature)) {
       logger.warn({ receivedSignature: signature }, 'Invalid Razorpay webhook signature');
       res.status(400).json({
         error: {
@@ -47,171 +270,20 @@ export class WebhookController {
     logger.info({ event }, 'Received verified Razorpay webhook event');
 
     try {
-      if (event === 'payment.failed') {
-        const payment = payload.payment?.entity;
-        if (payment) {
-          // Check for existing customer or merchant
-          const merchant = await prisma.merchant.findFirst();
-          if (merchant) {
-            let customer = await prisma.customer.findFirst({
-              where: { email: payment.email || 'customer@example.com' },
-            });
-
-            if (!customer) {
-              const fallbackNames = ['Rohit Sharma', 'Ananya Iyer', 'Siddharth Verma', 'Deepika Rao', 'Vikram Malhotra'];
-              const randomName = fallbackNames[crypto.randomInt(0, fallbackNames.length)];
-              const emailPrefix = randomName.toLowerCase().replace(/\s+/g, '.');
-              const randomSuffix = crypto.randomInt(100, 999);
-              customer = await prisma.customer.create({
-                data: {
-                  merchantId: merchant.id,
-                  name: payment.notes?.customer_name || payment.name || randomName,
-                  email: payment.email || `${emailPrefix}.${randomSuffix}@example.com`,
-                  phone: payment.contact || '+919876543210',
-                },
-              });
-            }
-
-            const paymentAttempt = await prisma.paymentAttempt.create({
-              data: {
-                customerId: customer.id,
-                orderId: payment.order_id || payment.id,
-                amount: Number(payment.amount) / 100, // paise to INR
-                currency: payment.currency || 'INR',
-                status: PaymentStatus.FAILED,
-                failureCode: payment.error_code || 'GATEWAY_ERROR',
-                failureReasonRaw: payment.error_description || 'Payment processing failed',
-                paymentMethod: payment.method || 'card',
-              },
-            });
-
-            const recoveryCase = await prisma.recoveryCase.create({
-              data: {
-                merchantId: merchant.id,
-                customerId: customer.id,
-                lane: Lane.PAYMENT,
-                sourceRefId: paymentAttempt.id,
-                rootCause: payment.error_code?.toLowerCase() || 'unknown',
-                status: 'OPEN',
-                amount: Number(payment.amount) / 100,
-                shouldRecover: !customer.optedOut,
-              },
-            });
-
-            await auditService.log({
-              actor: 'system',
-              entityType: 'RecoveryCase',
-              entityId: recoveryCase.id,
-              eventType: 'case_created',
-              afterJson: { event, paymentId: payment.id, amount: Number(payment.amount) / 100 },
-              reason: `Recovery case opened via Razorpay webhook: ${payment.error_description || 'Payment Failed'}`,
-            });
-
-            await cacheService.invalidateMetrics(merchant.id);
-          }
-        }
-      } else if (event === 'payment.captured' || event === 'order.paid') {
-        const payment = payload.payment?.entity || payload.order?.entity;
-        if (payment) {
-          // Find matching payment attempt or order
-          const paymentAttempt = await prisma.paymentAttempt.findFirst({
-            where: { orderId: payment.order_id || payment.id },
-            select: { id: true },
-          });
-
-          if (paymentAttempt) {
-            const recoveryCase = await prisma.recoveryCase.findFirst({
-              where: { sourceRefId: paymentAttempt.id, status: 'OPEN' },
-              select: { id: true, amount: true, merchantId: true },
-            });
-
-            if (recoveryCase) {
-              await prisma.$transaction(async (tx) => {
-                await tx.recoveryCase.update({
-                  where: { id: recoveryCase.id },
-                  data: {
-                    status: 'RECOVERED',
-                    closedAt: new Date(),
-                    closedReason: `Payment captured successfully via webhook (${payment.id})`,
-                  },
-                });
-
-                await auditService.log(
-                  {
-                    actor: 'system',
-                    entityType: 'RecoveryCase',
-                    entityId: recoveryCase.id,
-                    eventType: 'case_recovered',
-                    afterJson: { paymentId: payment.id, amount: Number(recoveryCase.amount) },
-                    reason: `Case recovered: Payment captured on Razorpay (${payment.id})`,
-                  },
-                  tx
-                );
-              });
-
-              await cacheService.invalidateMetrics(recoveryCase.merchantId || undefined);
-            }
-          }
-        }
-      } else if (event === 'invoice.overdue') {
-        const invoiceData = payload.invoice?.entity;
-        if (invoiceData) {
-          const merchant = await prisma.merchant.findFirst({
-            select: { id: true },
-          });
-          if (merchant) {
-            let customer = await prisma.customer.findFirst({
-              where: { email: invoiceData.customer_email || 'b2b@example.com' },
-              select: { id: true, optedOut: true },
-            });
-
-            if (!customer) {
-              customer = await prisma.customer.create({
-                data: {
-                  merchantId: merchant.id,
-                  name: invoiceData.customer_name || 'B2B Client',
-                  email: invoiceData.customer_email || `b2b_${Date.now()}@example.com`,
-                  phone: invoiceData.customer_contact,
-                },
-                select: { id: true, optedOut: true },
-              });
-            }
-
-            const invoice = await prisma.invoice.create({
-              data: {
-                customerId: customer.id,
-                invoiceNumber: invoiceData.id || `INV-${Date.now()}`,
-                amountDue: Number(invoiceData.amount_due || invoiceData.amount) / 100,
-                dueDate: new Date(invoiceData.expire_by ? invoiceData.expire_by * 1000 : Date.now() - 86400000),
-                status: InvoiceStatus.OVERDUE,
-              },
-            });
-
-            const recoveryCase = await prisma.recoveryCase.create({
-              data: {
-                merchantId: merchant.id,
-                customerId: customer.id,
-                lane: Lane.RECEIVABLE,
-                sourceRefId: invoice.id,
-                rootCause: 'unknown',
-                status: 'OPEN',
-                amount: Number(invoice.amountDue),
-                shouldRecover: !customer.optedOut,
-              },
-            });
-
-            await auditService.log({
-              actor: 'system',
-              entityType: 'RecoveryCase',
-              entityId: recoveryCase.id,
-              eventType: 'case_created',
-              afterJson: { event, invoiceId: invoice.id, amountDue: Number(invoice.amountDue) },
-              reason: `Receivables case created for overdue invoice ${invoice.invoiceNumber}`,
-            });
-
-            await cacheService.invalidateMetrics(merchant.id);
-          }
-        }
+      switch (event) {
+        case WEBHOOK_EVENTS.PAYMENT_FAILED:
+          await this.handlePaymentFailed(payload);
+          break;
+        case WEBHOOK_EVENTS.PAYMENT_CAPTURED:
+        case WEBHOOK_EVENTS.ORDER_PAID:
+          await this.handlePaymentCaptured(payload);
+          break;
+        case WEBHOOK_EVENTS.INVOICE_OVERDUE:
+          await this.handleInvoiceOverdue(payload);
+          break;
+        default:
+          // Unhandled event types acknowledged without action
+          break;
       }
 
       res.json({ status: 'ok', received: true });
@@ -232,15 +304,15 @@ export class WebhookController {
       const { event, amount, failureCode, failureReason, customerEmail, customerName } = req.body;
 
       const payloadAmount = (amount || 2499) * 100; // in paise
-      const generatedEvent = event || 'payment.failed';
+      const generatedEvent = event || WEBHOOK_EVENTS.PAYMENT_FAILED;
       const paymentId = `pay_sim_${Date.now()}`;
       const orderId = `order_sim_${Date.now()}`;
 
       let webhookPayload: Record<string, unknown> = {};
 
-      if (generatedEvent === 'payment.failed') {
+      if (generatedEvent === WEBHOOK_EVENTS.PAYMENT_FAILED) {
         webhookPayload = {
-          event: 'payment.failed',
+          event: WEBHOOK_EVENTS.PAYMENT_FAILED,
           payload: {
             payment: {
               entity: {
@@ -254,11 +326,15 @@ export class WebhookController {
                 error_description: failureReason || 'Bank gateway timed out during 3DS verification',
                 email: customerEmail || 'demo_customer@example.com',
                 contact: '+919876543210',
+                name: customerName || DEFAULT_CUSTOMER_NAME,
+                notes: {
+                  customer_name: customerName || DEFAULT_CUSTOMER_NAME,
+                },
               },
             },
           },
         };
-      } else if (generatedEvent === 'payment.captured' || generatedEvent === 'order.paid') {
+      } else if (generatedEvent === WEBHOOK_EVENTS.PAYMENT_CAPTURED || generatedEvent === WEBHOOK_EVENTS.ORDER_PAID) {
         webhookPayload = {
           event: generatedEvent,
           payload: {
@@ -270,13 +346,14 @@ export class WebhookController {
                 status: 'captured',
                 order_id: orderId,
                 email: customerEmail || 'demo_customer@example.com',
+                name: customerName || DEFAULT_CUSTOMER_NAME,
               },
             },
           },
         };
-      } else if (generatedEvent === 'invoice.overdue') {
+      } else if (generatedEvent === WEBHOOK_EVENTS.INVOICE_OVERDUE) {
         webhookPayload = {
-          event: 'invoice.overdue',
+          event: WEBHOOK_EVENTS.INVOICE_OVERDUE,
           payload: {
             invoice: {
               entity: {
