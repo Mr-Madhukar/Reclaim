@@ -176,8 +176,9 @@ export class AuthController {
 
   async refreshToken(req: Request, res: Response): Promise<void> {
     const authHeader = req.headers.authorization;
-    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || req.headers['x-refresh-token'] || bearerToken;
+    const bearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const rawToken = req.cookies?.refreshToken ?? req.body?.refreshToken ?? req.headers['x-refresh-token'] ?? bearerToken;
+    const refreshToken = typeof rawToken === 'string' && rawToken.trim() !== '' ? rawToken.trim() : undefined;
 
     if (!refreshToken) {
       res.status(401).json({
@@ -195,6 +196,16 @@ export class AuthController {
         decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as AuthUserPayload;
       } catch {
         decoded = jwt.verify(refreshToken, env.JWT_SECRET) as AuthUserPayload;
+      }
+
+      if (!decoded || typeof decoded !== 'object' || !decoded.userId) {
+        res.status(401).json({
+          error: {
+            code: 'INVALID_REFRESH_TOKEN',
+            message: 'Refresh token expired or invalid',
+          },
+        });
+        return;
       }
 
       const user = await prisma.user.findUnique({

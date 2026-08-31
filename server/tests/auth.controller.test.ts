@@ -94,7 +94,7 @@ describe('Auth Controller Tests', { timeout: 30000 }, () => {
   });
 
   describe('POST /api/auth/refresh', () => {
-    it('returns 401 when no refresh token provided', async () => {
+    it('returns 401 when no refresh token provided (Reject refresh without token)', async () => {
       const res = await request(app).post('/api/auth/refresh');
 
       expect(res.status).toBe(401);
@@ -107,6 +107,23 @@ describe('Auth Controller Tests', { timeout: 30000 }, () => {
         .send({ refreshToken: 'invalid_refresh_token' });
 
       expect(res.status).toBe(401);
+    });
+
+    it('returns 401 with malformed refresh payload (Reject malformed refresh payload)', async () => {
+      const res1 = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: { nested: true } });
+      expect(res1.status).toBe(401);
+
+      const res2 = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: 12345 });
+      expect(res2.status).toBe(401);
+
+      const res3 = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: '' });
+      expect(res3.status).toBe(401);
     });
   });
 
