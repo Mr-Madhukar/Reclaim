@@ -193,7 +193,8 @@ export const api = {
       return data.data || data;
     },
     resolveEscalation: async (id: string, notes: string, outcome: 'RECOVERED' | 'EXPIRED' | 'UNRESOLVED'): Promise<void> => {
-      await apiClient.post(`/cases/${id}/resolve`, { notes, outcome });
+      const resolution = outcome === 'UNRESOLVED' ? 'EXPIRED' : outcome;
+      await apiClient.post(`/cases/${id}/resolve`, { notes, resolution, outcome });
     },
     logPromiseToPay: async (id: string, promisedAmount: number, promisedDate: string): Promise<void> => {
       await apiClient.post(`/cases/${id}/promise-to-pay`, { promisedAmount, promisedDate });

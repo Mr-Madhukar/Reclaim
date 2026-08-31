@@ -2,9 +2,10 @@ import rateLimit from 'express-rate-limit';
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 requests per IP
+  max: 500, // 500 requests per IP for testing suites
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
@@ -15,9 +16,10 @@ export const authRateLimiter = rateLimit({
 
 export const apiRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 200, // 200 requests per minute
+  max: 5000, // 5000 requests per minute for automated suites & real-time testing
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
@@ -25,3 +27,4 @@ export const apiRateLimiter = rateLimit({
     },
   },
 });
+

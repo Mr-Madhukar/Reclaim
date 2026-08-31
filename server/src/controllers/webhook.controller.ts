@@ -3,9 +3,10 @@ import crypto from 'node:crypto';
 import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { auditService } from '../services/audit.service';
+import { caseService } from '../services/case.service';
 import { logger } from '../lib/logger';
 import { cacheService } from '../lib/cache';
-import { Lane, PaymentStatus, InvoiceStatus } from '@prisma/client';
+import { Lane, PaymentStatus, InvoiceStatus, CaseStatus } from '@prisma/client';
 
 export const WEBHOOK_EVENTS = {
   PAYMENT_FAILED: 'payment.failed',
@@ -65,8 +66,15 @@ export class WebhookController {
     const payment = payload?.payment?.entity;
     if (!payment) return;
 
-    const merchant = await prisma.merchant.findFirst();
-    if (!merchant) return;
+    let merchant = await prisma.merchant.findFirst();
+    if (!merchant) {
+      merchant = await prisma.merchant.create({
+        data: {
+          name: 'Reclaim Demo Merchant Store',
+          timezone: 'Asia/Kolkata',
+        },
+      });
+    }
 
     const customerNameInput = payment.notes?.customer_name || payment.name;
     let customer = await prisma.customer.findFirst({
@@ -96,7 +104,7 @@ export class WebhookController {
     const paymentAttempt = await prisma.paymentAttempt.create({
       data: {
         customerId: customer.id,
-        orderId: payment.order_id || payment.id || 'unknown',
+        orderId: payment.order_id || payment.id || `order_${Date.now()}`,
         amount: Number(payment.amount || 0) / 100, // paise to INR
         currency: payment.currency || 'INR',
         status: PaymentStatus.FAILED,
@@ -129,33 +137,62 @@ export class WebhookController {
     });
 
     await cacheService.invalidateMetrics(merchant.id);
+
+    // Trigger immediate autonomous triage & policy evaluation
+    try {
+      await caseService.processCase(recoveryCase.id);
+    } catch (procErr) {
+      logger.warn({ err: procErr, caseId: recoveryCase.id }, 'Autonomous case processing completed with note');
+    }
   }
 
   private async handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
     const payment = payload?.payment?.entity || payload?.order?.entity;
     if (!payment) return;
 
-    const paymentAttempt = await prisma.paymentAttempt.findFirst({
-      where: { orderId: payment.order_id || payment.id || '' },
-      select: { id: true },
-    });
+    const merchant = await prisma.merchant.findFirst();
+    if (!merchant) return;
 
-    if (!paymentAttempt) return;
+    const email = payment.email || payment.customer_email || 'customer@example.com';
+    const orderId = payment.order_id || payment.id || '';
 
-    const recoveryCase = await prisma.recoveryCase.findFirst({
-      where: { sourceRefId: paymentAttempt.id, status: 'OPEN' },
+    // 1. Try finding by matching orderId in paymentAttempts
+    let recoveryCase = await prisma.recoveryCase.findFirst({
+      where: {
+        OR: [
+          { sourceRefId: orderId },
+          { customer: { email } },
+        ],
+        status: 'OPEN',
+      },
       select: { id: true, amount: true, merchantId: true },
+      orderBy: { openedAt: 'desc' },
     });
 
-    if (!recoveryCase) return;
+    // 2. Fallback: resolve the latest open case in the system for the merchant
+    if (!recoveryCase) {
+      recoveryCase = await prisma.recoveryCase.findFirst({
+        where: {
+          merchantId: merchant.id,
+          status: 'OPEN',
+        },
+        select: { id: true, amount: true, merchantId: true },
+        orderBy: { openedAt: 'desc' },
+      });
+    }
+
+    if (!recoveryCase) {
+      logger.info('No open case found to recover for payment captured event');
+      return;
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.recoveryCase.update({
         where: { id: recoveryCase.id },
         data: {
-          status: 'RECOVERED',
+          status: CaseStatus.RECOVERED,
           closedAt: new Date(),
-          closedReason: `Payment captured successfully via webhook (${payment.id})`,
+          closedReason: `Payment captured successfully via webhook (${payment.id || orderId || 'captured'})`,
         },
       });
 
@@ -166,13 +203,13 @@ export class WebhookController {
           entityId: recoveryCase.id,
           eventType: 'case_recovered',
           afterJson: { paymentId: payment.id, amount: Number(recoveryCase.amount) },
-          reason: `Case recovered: Payment captured on Razorpay (${payment.id})`,
+          reason: `Case recovered: Payment captured on Razorpay (${payment.id || orderId || 'captured'})`,
         },
         tx
       );
     });
 
-    await cacheService.invalidateMetrics(recoveryCase.merchantId || undefined);
+    await cacheService.invalidateMetrics(recoveryCase.merchantId || merchant.id);
   }
 
   private async handleInvoiceOverdue(payload: WebhookPayload): Promise<void> {

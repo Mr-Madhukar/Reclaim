@@ -29,10 +29,16 @@ export const caseFilterSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-export const escalateResponseSchema = z.object({
-  resolution: z.enum(['RECOVERED', 'EXPIRED']),
-  notes: z.string().min(3, { message: 'Resolution notes required' }),
-});
+export const escalateResponseSchema = z
+  .object({
+    resolution: z.enum(['RECOVERED', 'EXPIRED', 'UNRESOLVED']).optional(),
+    outcome: z.enum(['RECOVERED', 'EXPIRED', 'UNRESOLVED']).optional(),
+    notes: z.string().min(3, { message: 'Resolution notes required' }),
+  })
+  .transform((data) => ({
+    resolution: (data.resolution || (data.outcome === 'UNRESOLVED' ? 'EXPIRED' : data.outcome) || 'RECOVERED') as 'RECOVERED' | 'EXPIRED',
+    notes: data.notes,
+  }));
 
 export const promiseToPaySchema = z.object({
   promisedAmount: z.number().positive(),
