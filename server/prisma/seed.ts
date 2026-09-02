@@ -195,18 +195,98 @@ async function main() {
       },
     });
 
-    await prisma.recoveryCase.create({
+    // Distribute statuses across cases for realistic demo
+    let status: CaseStatus = CaseStatus.OPEN;
+    let closedAt: Date | null = null;
+    let closedReason: string | null = null;
+
+    if (cust.optedOut) {
+      status = CaseStatus.STOPPED_OPTED_OUT;
+      closedAt = new Date();
+      closedReason = 'Customer opted out of recovery communications';
+    } else if (i % 4 === 0) {
+      status = CaseStatus.RECOVERED;
+      closedAt = new Date();
+      closedReason = 'Payment recovered via 1-Click UPI Intent link';
+    } else if (i % 7 === 0) {
+      status = CaseStatus.ESCALATED_TO_HUMAN;
+      closedReason = 'High value transaction flagged for manual review';
+    }
+
+    const recoveryCase = await prisma.recoveryCase.create({
       data: {
         merchantId: merchant.id,
         customerId: cust.id,
         lane: Lane.PAYMENT,
         sourceRefId: paymentAttempt.id,
         rootCause: failInfo.cause,
-        status: CaseStatus.OPEN,
+        status,
         amount,
+        closedAt,
+        closedReason,
         shouldRecover: cust.optedOut ? false : failInfo.shouldRecover,
       },
     });
+
+    // Create realistic actions & audit logs
+    if (status === CaseStatus.RECOVERED) {
+      await prisma.recoveryAction.create({
+        data: {
+          caseId: recoveryCase.id,
+          actionType: 'send_payment_link',
+          channel: 'whatsapp',
+          payloadJson: { upiIntent: `upi://pay?pa=reclaim@razorpay&am=${amount}`, template: 'upi_retry_prompt' },
+          decisionReason: 'Autonomous policy gate passed. Customer engaged via WhatsApp UPI intent.',
+          modelUsed: 'gemini-2.0-flash',
+          attemptNumber: 1,
+          outcome: 'confirmed',
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          actor: 'agent',
+          entityType: 'RecoveryCase',
+          entityId: recoveryCase.id,
+          eventType: 'case_recovered',
+          reason: `Auto-recovered ₹${amount} via WhatsApp UPI Intent link`,
+        },
+      });
+    } else if (status === CaseStatus.STOPPED_OPTED_OUT) {
+      await prisma.recoveryAction.create({
+        data: {
+          caseId: recoveryCase.id,
+          actionType: 'policy_check',
+          channel: null,
+          payloadJson: { stoppedRule: 'OPTED_OUT' },
+          decisionReason: 'Stopping Rule triggered: Customer has opted out of communication.',
+          modelUsed: 'rules',
+          attemptNumber: 1,
+          outcome: 'blocked',
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          actor: 'system',
+          entityType: 'RecoveryCase',
+          entityId: recoveryCase.id,
+          eventType: 'policy_blocked',
+          reason: 'Deterministic Policy Gate blocked outreach: DPDP Act Opt-Out flag active',
+        },
+      });
+    } else if (status === CaseStatus.ESCALATED_TO_HUMAN) {
+      await prisma.auditLog.create({
+        data: {
+          actor: 'agent',
+          entityType: 'RecoveryCase',
+          entityId: recoveryCase.id,
+          eventType: 'case_escalated',
+          reason: 'Tier 1 Policy Engine routed case to Human-in-the-Loop review queue',
+        },
+      });
+    }
+
     caseCount++;
   }
 
@@ -230,18 +310,50 @@ async function main() {
       },
     });
 
-    await prisma.recoveryCase.create({
+    let status: CaseStatus = CaseStatus.OPEN;
+    let closedAt: Date | null = null;
+    let closedReason: string | null = null;
+
+    if (cust.optedOut) {
+      status = CaseStatus.STOPPED_OPTED_OUT;
+      closedAt = new Date();
+      closedReason = 'Customer opted out of marketing/recovery messages';
+    } else if (i % 3 === 0) {
+      status = CaseStatus.RECOVERED;
+      closedAt = new Date();
+      closedReason = 'Cart checkout completed with personalized incentive';
+    }
+
+    const recoveryCase = await prisma.recoveryCase.create({
       data: {
         merchantId: merchant.id,
         customerId: cust.id,
         lane: Lane.CHECKOUT,
         sourceRefId: checkoutSession.id,
-        rootCause: 'unknown',
-        status: CaseStatus.OPEN,
+        rootCause: 'price_sensitivity',
+        status,
         amount: cartValue,
+        closedAt,
+        closedReason,
         shouldRecover: cust.optedOut ? false : i % 4 !== 0,
       },
     });
+
+    if (status === CaseStatus.RECOVERED) {
+      await prisma.recoveryAction.create({
+        data: {
+          caseId: recoveryCase.id,
+          actionType: 'send_discount_coupon',
+          channel: 'sms',
+          payloadJson: { coupon: 'RECLAIM10', discountPercent: 10 },
+          decisionReason: 'Cart abandonment intervention: Offered 10% coupon within merchant policy bounds.',
+          modelUsed: 'gemini-2.0-flash',
+          attemptNumber: 1,
+          outcome: 'confirmed',
+        },
+      });
+    }
+
     caseCount++;
   }
 
@@ -263,15 +375,30 @@ async function main() {
       },
     });
 
+    let status: CaseStatus = CaseStatus.OPEN;
+    let closedAt: Date | null = null;
+    let closedReason: string | null = null;
+
+    if (i % 3 === 0) {
+      status = CaseStatus.RECOVERED;
+      closedAt = new Date();
+      closedReason = 'Invoice paid via structured automated payment schedule';
+    } else if (i === 42 || i === 48) {
+      status = CaseStatus.ESCALATED_TO_HUMAN;
+      closedReason = 'Promise-to-pay schedule agreed, pending merchant approval';
+    }
+
     const recoveryCase = await prisma.recoveryCase.create({
       data: {
         merchantId: merchant.id,
         customerId: cust.id,
         lane: Lane.RECEIVABLE,
         sourceRefId: invoice.id,
-        rootCause: 'unknown',
-        status: CaseStatus.OPEN,
+        rootCause: 'cashflow_timing',
+        status,
         amount: amountDue,
+        closedAt,
+        closedReason,
         shouldRecover: cust.optedOut ? false : i % 3 !== 0,
       },
     });
@@ -284,6 +411,21 @@ async function main() {
           promisedAmount: amountDue,
           promisedDate: new Date(Date.now() + 7 * 24 * 3600 * 1000),
           kept: null,
+        },
+      });
+    }
+
+    if (status === CaseStatus.RECOVERED) {
+      await prisma.recoveryAction.create({
+        data: {
+          caseId: recoveryCase.id,
+          actionType: 'schedule_reconciliation',
+          channel: 'email',
+          payloadJson: { invoiceNumber: invoice.invoiceNumber, amount: amountDue },
+          decisionReason: 'Automated executive invoice reminder dispatched with payment gateway link.',
+          modelUsed: 'gemini-2.0-flash',
+          attemptNumber: 1,
+          outcome: 'confirmed',
         },
       });
     }
