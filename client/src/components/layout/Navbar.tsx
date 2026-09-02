@@ -28,16 +28,17 @@ interface NavTabItem {
   id: MainTab;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  allowedRoles?: UserRole[];
 }
 
 const NAV_TABS: NavTabItem[] = [
   { id: 'landing', label: 'Showcase', icon: Sparkles },
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'cases', label: 'Workbench', icon: FileText },
-  { id: 'sandbox', label: 'Sandbox', icon: FlaskConical },
-  { id: 'policies', label: 'Policies', icon: Sliders },
-  { id: 'audit', label: 'Audit', icon: History },
-  { id: 'scorecard', label: 'Scorecard', icon: Award },
+  { id: 'sandbox', label: 'Sandbox', icon: FlaskConical, allowedRoles: ['ADMIN', 'REVIEWER'] },
+  { id: 'policies', label: 'Policies', icon: Sliders, allowedRoles: ['ADMIN'] },
+  { id: 'audit', label: 'Audit', icon: History, allowedRoles: ['ADMIN', 'OPS_VIEWER'] },
+  { id: 'scorecard', label: 'Scorecard', icon: Award, allowedRoles: ['ADMIN', 'OPS_VIEWER'] },
 ];
 
 const TAB_ACTIVE_CLASS = 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]';
@@ -51,6 +52,27 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { user, switchRole } = useAuth();
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+
+  const currentRole: UserRole = user?.role || 'ADMIN';
+
+  const visibleNavTabs = NAV_TABS.filter((tab) => {
+    if (!tab.allowedRoles) return true;
+    return tab.allowedRoles.includes(currentRole);
+  });
+
+  const handleSwitchRole = (newRole: UserRole) => {
+    switchRole(newRole);
+    setRoleDropdownOpen(false);
+
+    // Auto-switch to dashboard if the current activeTab is not allowed in the new role
+    const permittedTabs = NAV_TABS.filter(
+      (tab) => !tab.allowedRoles || tab.allowedRoles.includes(newRole)
+    ).map((t) => t.id);
+
+    if (!permittedTabs.includes(activeTab)) {
+      onSelectTab('overview');
+    }
+  };
 
   const roles: { role: UserRole; label: string; desc: string }[] = [
     { role: 'ADMIN', label: 'Admin', desc: 'Full write & batch trigger access' },
@@ -83,7 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Center: Desktop Navigation Tabs */}
         <nav role="navigation" aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-white/[0.03] p-1 rounded-full border border-cream-300/80 dark:border-white/[0.08] backdrop-blur-md">
-          {NAV_TABS.map(({ id, label, icon: Icon }) => (
+          {visibleNavTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => onSelectTab(id)}
@@ -134,10 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {roles.map(({ role, label, desc }) => (
                     <button
                       key={role}
-                      onClick={() => {
-                        switchRole(role);
-                        setRoleDropdownOpen(false);
-                      }}
+                      onClick={() => handleSwitchRole(role)}
                       className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex flex-col transition-colors ${
                         user?.role === role
                           ? 'bg-brand-500/15 text-brand-600 dark:text-brand-400 font-semibold border border-brand-500/30'

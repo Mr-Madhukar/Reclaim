@@ -31,21 +31,40 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   if (!isOpen) return null;
 
+  const currentRole: UserRole = user?.role || 'ADMIN';
+
   const roles: { role: UserRole; label: string }[] = [
     { role: 'ADMIN', label: 'Admin' },
     { role: 'REVIEWER', label: 'Reviewer' },
     { role: 'OPS_VIEWER', label: 'Ops Viewer' },
   ];
 
-  const navItems: { tab: MainTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  const navItems: { tab: MainTab; label: string; icon: React.ComponentType<{ className?: string }>; allowedRoles?: UserRole[] }[] = [
     { tab: 'landing', label: 'Project Showcase', icon: Sparkles },
     { tab: 'overview', label: 'Dashboard KPIs', icon: LayoutDashboard },
     { tab: 'cases', label: 'Case Workbench', icon: FileText },
-    { tab: 'sandbox', label: 'Simulation Sandbox', icon: FlaskConical },
-    { tab: 'policies', label: 'Policy Engine', icon: Sliders },
-    { tab: 'audit', label: 'Audit Trail', icon: History },
-    { tab: 'scorecard', label: 'Scorecard', icon: Award },
+    { tab: 'sandbox', label: 'Simulation Sandbox', icon: FlaskConical, allowedRoles: ['ADMIN', 'REVIEWER'] },
+    { tab: 'policies', label: 'Policy Engine', icon: Sliders, allowedRoles: ['ADMIN'] },
+    { tab: 'audit', label: 'Audit Trail', icon: History, allowedRoles: ['ADMIN', 'OPS_VIEWER'] },
+    { tab: 'scorecard', label: 'Scorecard', icon: Award, allowedRoles: ['ADMIN', 'OPS_VIEWER'] },
   ];
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.allowedRoles) return true;
+    return item.allowedRoles.includes(currentRole);
+  });
+
+  const handleSwitchRole = (newRole: UserRole) => {
+    switchRole(newRole);
+
+    const permittedTabs = navItems.filter(
+      (item) => !item.allowedRoles || item.allowedRoles.includes(newRole)
+    ).map((t) => t.tab);
+
+    if (!permittedTabs.includes(activeTab)) {
+      onSelectTab('overview');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex xl:hidden animate-fade-in">
@@ -83,7 +102,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
           {/* Navigation Links */}
           <div className="py-6 space-y-1.5">
-            {navItems.map(({ tab, label, icon: Icon }) => (
+            {visibleNavItems.map(({ tab, label, icon: Icon }) => (
               <button
                 key={tab}
                 onClick={() => {
@@ -112,9 +131,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             {roles.map(({ role, label }) => (
               <button
                 key={role}
-                onClick={() => {
-                  switchRole(role);
-                }}
+                onClick={() => handleSwitchRole(role)}
                 className={`py-1.5 px-2 rounded-lg text-xs font-mono font-medium transition-all ${
                   user?.role === role
                     ? 'bg-brand-500 text-white'
