@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import {
   ShieldCheck,
-  Sun,
-  Moon,
   UserCheck,
   Menu,
   ChevronDown,
@@ -14,7 +12,6 @@ import {
   FlaskConical,
   Award,
 } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRole } from '../../types';
 
@@ -27,13 +24,31 @@ interface NavbarProps {
   onOpenLoginModal: () => void;
 }
 
+interface NavTabItem {
+  id: MainTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const NAV_TABS: NavTabItem[] = [
+  { id: 'landing', label: 'Showcase', icon: Sparkles },
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'cases', label: 'Workbench', icon: FileText },
+  { id: 'sandbox', label: 'Sandbox', icon: FlaskConical },
+  { id: 'policies', label: 'Policies', icon: Sliders },
+  { id: 'audit', label: 'Audit', icon: History },
+  { id: 'scorecard', label: 'Scorecard', icon: Award },
+];
+
+const TAB_ACTIVE_CLASS = 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]';
+const TAB_INACTIVE_CLASS = 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]';
+
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   onOpenMobileMenu,
   onOpenLoginModal,
 }) => {
-  const { theme, toggleTheme } = useTheme();
   const { user, switchRole } = useAuth();
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
@@ -68,119 +83,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Center: Desktop Navigation Tabs */}
         <nav role="navigation" aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-white/[0.03] p-1 rounded-full border border-cream-300/80 dark:border-white/[0.08] backdrop-blur-md">
-          <button
-            onClick={() => onSelectTab('landing')}
-            aria-current={activeTab === 'landing' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'landing'
-                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Showcase</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('overview')}
-            aria-current={activeTab === 'overview' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'overview'
-                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
-            }`}
-          >
-            <LayoutDashboard className="h-3.5 w-3.5" />
-            <span>Dashboard</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('cases')}
-            aria-current={activeTab === 'cases' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'cases'
-                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
-            }`}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            <span>Workbench</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('sandbox')}
-            aria-current={activeTab === 'sandbox' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'sandbox'
-                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
-            }`}
-          >
-            <FlaskConical className="h-3.5 w-3.5" />
-            <span>Sandbox</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('policies')}
-            aria-current={activeTab === 'policies' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'policies'
-                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
-            }`}
-          >
-            <Sliders className="h-3.5 w-3.5" />
-            <span>Policies</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('audit')}
-            aria-current={activeTab === 'audit' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'audit'
-                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
-            }`}
-          >
-            <History className="h-3.5 w-3.5" />
-            <span>Audit</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('scorecard')}
-            aria-current={activeTab === 'scorecard' ? 'page' : undefined}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              activeTab === 'scorecard'
-                ? 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]'
-                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]'
-            }`}
-          >
-            <Award className="h-3.5 w-3.5" />
-            <span>Scorecard</span>
-          </button>
+          {NAV_TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => onSelectTab(id)}
+              aria-current={activeTab === id ? 'page' : undefined}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                activeTab === id ? TAB_ACTIVE_CLASS : TAB_INACTIVE_CLASS
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span>{label}</span>
+            </button>
+          ))}
         </nav>
 
-        {/* Right: Theme Toggle + 1-Click Role Switcher + Mobile Trigger */}
+        {/* Right: Policy Live Pulse + 1-Click Role Switcher + Mobile Trigger */}
         <div className="flex items-center space-x-2.5">
           {/* Policy Guardrail Live Pulse */}
-          <div className="hidden lg:flex items-center space-x-1.5 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+          <div className="hidden lg:flex items-center space-x-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
             <span className="font-medium text-[11px]">Guardrails Active</span>
           </div>
-
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="p-2 rounded-xl bg-cream-200 dark:bg-surface-850 text-cream-800 dark:text-slate-200 border border-cream-300 dark:border-surface-750 hover:border-brand-500/50 transition-colors focus:outline-none"
-            title={theme === 'dark' ? 'Switch to Cream Light Mode' : 'Switch to Dark Obsidian Mode'}
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-4 w-4 text-amber-400" />
-            ) : (
-              <Moon className="h-4 w-4 text-slate-700" />
-            )}
-          </button>
 
           {/* 1-Click RBAC Role Switcher */}
           <div className="relative">

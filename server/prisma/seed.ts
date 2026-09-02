@@ -49,7 +49,7 @@ async function main() {
       {
         email: 'admin@reclaim.demo',
         name: 'Admin User',
-        passwordHash: adminPasswordHash,
+        passwordHash: demoPasswordHash,
         role: Role.ADMIN,
         merchantId: merchant.id,
       },

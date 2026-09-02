@@ -41,7 +41,8 @@ export const JsonDiffModal: React.FC<JsonDiffModalProps> = ({ log, onClose }) =>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300"
+            aria-label="Close diff modal"
+            className="p-1.5 rounded-xl bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300 hover:text-brand-500 transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>

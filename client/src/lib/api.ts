@@ -154,7 +154,7 @@ export const api = {
   cases: {
     list: async (params?: CaseFilterParams): Promise<{ cases: RecoveryCase[]; total: number; page: number; limit: number }> => {
       const cleanParams = Object.fromEntries(
-        Object.entries(params || {}).filter(([_, v]) => v !== undefined && v !== 'ALL')
+        Object.entries(params || {}).filter(([_, v]) => v !== undefined && v !== 'ALL' && v !== '')
       );
       const { data } = await apiClient.get<{
         items?: RecoveryCase[];

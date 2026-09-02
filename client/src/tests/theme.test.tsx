@@ -30,7 +30,7 @@ describe('ThemeProvider & useTheme', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
-  it('toggles theme to light cream mode and removes dark class', () => {
+  it('permanently enforces dark mode on toggle attempts', () => {
     render(
       <ThemeProvider>
         <ThemeConsumer />
@@ -40,8 +40,8 @@ describe('ThemeProvider & useTheme', () => {
     const button = screen.getByText('Toggle Theme');
     fireEvent.click(button);
 
-    expect(screen.getByTestId('current-theme').textContent).toBe('light');
-    expect(document.documentElement.classList.contains('dark')).toBe(false);
-    expect(localStorage.getItem('reclaim_theme')).toBe('light');
+    expect(screen.getByTestId('current-theme').textContent).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(localStorage.getItem('reclaim_theme')).toBe('dark');
   });
 });
