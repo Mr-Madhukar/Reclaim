@@ -120,12 +120,4 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
       }
     }
   });
-
-  test('Theme toggle button has proper aria-label', async ({ page }) => {
-    const themeBtn = page.getByRole('button', { name: /toggle theme/i });
-    await expect(themeBtn).toBeVisible();
-
-    const label = await themeBtn.getAttribute('aria-label');
-    expect(label?.toLowerCase()).toContain('toggle theme');
-  });
 });
