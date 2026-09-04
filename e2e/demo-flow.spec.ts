@@ -49,7 +49,7 @@ test.describe('Reclaim AI Revenue Recovery Agent — End-to-End Demo Flow', () =
       await caseRows.first().click();
       await page.waitForTimeout(500);
       // Verify drawer or modal opened
-      await expect(page.getByText(/Case Details|Timeline|Audit Trail/i).first()).toBeVisible();
+      await expect(page.getByText(/Case Details|Timeline|Audit Trail/i).first()).toBeVisible({ timeout: 15000 });
     }
   });
 

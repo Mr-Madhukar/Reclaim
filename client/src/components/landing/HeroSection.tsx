@@ -29,7 +29,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
       action: 'SMS Retry Link + UPI QR',
       policy: 'PASSED (0/3 retries, within 9am-7pm)',
       status: 'RECOVERED',
-      statusColor: 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+      statusColor: 'text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     },
     {
       id: 'EVT-9043',
@@ -40,7 +40,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
       action: 'Drafted Gemini 2.0 copy + 5% capped code',
       policy: 'PASSED (Budget cap verified)',
       status: 'PROCESSING',
-      statusColor: 'text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/20',
+      statusColor: 'text-amber-800 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
     },
     {
       id: 'EVT-9044',
@@ -51,7 +51,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
       action: 'Log promise-to-pay committed for 28th Feb',
       policy: 'HALTED_ACTIVE_PROMISE (Guardrail enforced)',
       status: 'PAUSED',
-      statusColor: 'text-blue-700 dark:text-blue-300 bg-blue-500/10 border-blue-500/20',
+      statusColor: 'text-blue-800 dark:text-blue-400 bg-blue-500/10 border-blue-500/20',
     },
   ];
 
@@ -143,8 +143,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
                 onClick={() => setActiveTelemetryTab('stream')}
                 className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all ${
                   activeTelemetryTab === 'stream'
-                    ? 'bg-brand-600 text-white font-semibold'
-                    : 'text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-brand-700 text-white font-semibold'
+                    : 'text-slate-800 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Live Stream
@@ -154,8 +154,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
                 onClick={() => setActiveTelemetryTab('guardrails')}
                 className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all ${
                   activeTelemetryTab === 'guardrails'
-                    ? 'bg-brand-600 text-white font-semibold'
-                    : 'text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-brand-700 text-white font-semibold'
+                    : 'text-slate-800 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Policy Gates
@@ -182,10 +182,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 font-medium">
                             {evt.lane}
                           </span>
-                          <span className="text-[10px] text-slate-600 dark:text-zinc-300">{evt.time}</span>
+                          <span className="text-[10px] text-slate-700 dark:text-zinc-200">{evt.time}</span>
                         </div>
-                        <div className="text-[11px] text-slate-700 dark:text-zinc-300 mt-1 flex items-center space-x-1.5">
-                          <CornerDownRight className="h-3 w-3 text-slate-500 dark:text-zinc-400" />
+                        <div className="text-[11px] text-slate-800 dark:text-zinc-200 mt-1 flex items-center space-x-1.5">
+                          <CornerDownRight className="h-3 w-3 text-slate-600 dark:text-zinc-400" />
                           <span>{evt.action}</span>
                         </div>
                       </div>

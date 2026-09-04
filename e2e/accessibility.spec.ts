@@ -16,6 +16,10 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
       (v) => v.impact === 'critical' || v.impact === 'serious'
     );
 
+    if (critical.length > 0) {
+      console.log('Accessibility violations found:', critical.map(v => ({ id: v.id, impact: v.impact, description: v.description, nodes: v.nodes.map(n => n.html) })));
+    }
+
     expect(critical).toHaveLength(0);
   });
 
