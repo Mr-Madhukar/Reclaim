@@ -36,6 +36,8 @@ export function formatRelativeTime(dateString: string | null | undefined): strin
   }
 }
 
+const BORDER_SLATE_500 = 'border-slate-500/30';
+
 export function getLaneBadgeProps(lane: Lane): { label: string; bgClass: string; textClass: string; borderClass: string } {
   switch (lane) {
     case 'PAYMENT':
@@ -64,7 +66,7 @@ export function getLaneBadgeProps(lane: Lane): { label: string; bgClass: string;
         label: lane,
         bgClass: 'bg-slate-500/10',
         textClass: 'text-slate-600 dark:text-slate-400',
-        borderClass: 'border-slate-500/30',
+        borderClass: BORDER_SLATE_500,
       };
   }
 }
@@ -100,7 +102,7 @@ export function getStatusBadgeProps(status: CaseStatus): { label: string; bgClas
         label: 'Stopped (Customer Opt-out)',
         bgClass: 'bg-slate-500/10 dark:bg-slate-500/15',
         textClass: 'text-slate-700 dark:text-slate-400',
-        borderClass: 'border-slate-500/30',
+        borderClass: BORDER_SLATE_500,
         dotClass: 'bg-slate-500',
       };
     case 'ESCALATED_TO_HUMAN':
@@ -116,7 +118,7 @@ export function getStatusBadgeProps(status: CaseStatus): { label: string; bgClas
         label: 'Expired',
         bgClass: 'bg-slate-500/10 dark:bg-slate-500/15',
         textClass: 'text-slate-600 dark:text-slate-400',
-        borderClass: 'border-slate-500/30',
+        borderClass: BORDER_SLATE_500,
         dotClass: 'bg-slate-400',
       };
     default:
@@ -124,7 +126,7 @@ export function getStatusBadgeProps(status: CaseStatus): { label: string; bgClas
         label: status,
         bgClass: 'bg-slate-500/10',
         textClass: 'text-slate-700 dark:text-slate-400',
-        borderClass: 'border-slate-500/30',
+        borderClass: BORDER_SLATE_500,
         dotClass: 'bg-slate-400',
       };
   }

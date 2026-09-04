@@ -29,7 +29,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
       action: 'SMS Retry Link + UPI QR',
       policy: 'PASSED (0/3 retries, within 9am-7pm)',
       status: 'RECOVERED',
-      statusColor: 'text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      statusColor: 'text-emerald-900 dark:text-emerald-300 bg-emerald-500/15 border-emerald-500/30 font-bold',
     },
     {
       id: 'EVT-9043',
@@ -40,7 +40,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
       action: 'Drafted Gemini 2.0 copy + 5% capped code',
       policy: 'PASSED (Budget cap verified)',
       status: 'PROCESSING',
-      statusColor: 'text-amber-800 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+      statusColor: 'text-amber-900 dark:text-amber-300 bg-amber-500/15 border-amber-500/30 font-bold',
     },
     {
       id: 'EVT-9044',
@@ -51,7 +51,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLaunchDashboard }) =
       action: 'Log promise-to-pay committed for 28th Feb',
       policy: 'HALTED_ACTIVE_PROMISE (Guardrail enforced)',
       status: 'PAUSED',
-      statusColor: 'text-blue-800 dark:text-blue-400 bg-blue-500/10 border-blue-500/20',
+      statusColor: 'text-blue-900 dark:text-blue-300 bg-blue-500/15 border-blue-500/30 font-bold',
     },
   ];
 

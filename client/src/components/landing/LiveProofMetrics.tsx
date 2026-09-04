@@ -67,10 +67,10 @@ export const LiveProofMetrics: React.FC<LiveProofMetricsProps> = ({ onLaunchDash
             <div className="pt-2">
               <button
                 onClick={() => onLaunchDashboard('overview')}
-                className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm shadow-[0_0_20px_-4px_rgba(249,115,22,0.4)] transition-all hover:scale-[1.02]"
+                className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-[0_0_20px_-4px_rgba(249,115,22,0.4)] transition-all hover:scale-[1.02]"
               >
                 <Zap className="h-4 w-4 fill-white" />
-                <span>Verify Live Metrics in Dashboard</span>
+                <span className="text-white">Verify Live Metrics in Dashboard</span>
               </button>
             </div>
           </div>

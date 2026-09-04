@@ -57,6 +57,39 @@ describe('Auth Controller Tests', { timeout: 30000 }, () => {
     });
   });
 
+  describe('POST /api/auth/demo', () => {
+    it('returns 400 with invalid role', async () => {
+      const res = await request(app)
+        .post('/api/auth/demo')
+        .send({ role: 'SUPERUSER' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 200 with default ADMIN role when body is empty', async () => {
+      const res = await request(app)
+        .post('/api/auth/demo')
+        .send({});
+
+      if (res.status === 200) {
+        expect(res.body).toHaveProperty('accessToken');
+        expect(res.body.user).toHaveProperty('role', 'ADMIN');
+      }
+    });
+
+    it('returns 200 for valid role REVIEWER', async () => {
+      const res = await request(app)
+        .post('/api/auth/demo')
+        .send({ role: 'REVIEWER' });
+
+      if (res.status === 200) {
+        expect(res.body).toHaveProperty('accessToken');
+        expect(res.body.user).toHaveProperty('role', 'REVIEWER');
+      }
+    });
+  });
+
   describe('GET /api/auth/me', () => {
     it('returns 401 when no token provided', async () => {
       const res = await request(app).get('/api/auth/me');

@@ -254,24 +254,24 @@ export const LaneShowcase: React.FC = () => {
               </div>
               <div className="p-4 rounded-xl bg-black text-slate-100 font-mono text-xs border border-white/[0.08] space-y-2">
                 <div>
-                  <span className="text-zinc-300">Customer: </span>
+                  <span className="text-zinc-200">Customer: </span>
                   <span className="text-white font-semibold">{current.simulatedCase.customer}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-300">Amount at Risk: </span>
-                  <span className="text-red-300 font-semibold">{current.simulatedCase.amount}</span>
+                  <span className="text-zinc-200">Amount at Risk: </span>
+                  <span className="text-red-200 font-semibold">{current.simulatedCase.amount}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-300">Diagnosis: </span>
-                  <span className="text-brand-300">{current.simulatedCase.rootCause}</span>
+                  <span className="text-zinc-200">Diagnosis: </span>
+                  <span className="text-orange-200">{current.simulatedCase.rootCause}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-300">Action: </span>
-                  <span className="text-indigo-300">{current.simulatedCase.actionTaken}</span>
+                  <span className="text-zinc-200">Action: </span>
+                  <span className="text-indigo-200">{current.simulatedCase.actionTaken}</span>
                 </div>
                 <div className="pt-2 border-t border-zinc-800">
-                  <span className="text-zinc-300">Outcome: </span>
-                  <span className="text-emerald-300 font-bold">{current.simulatedCase.outcome}</span>
+                  <span className="text-zinc-200">Outcome: </span>
+                  <span className="text-emerald-200 font-bold">{current.simulatedCase.outcome}</span>
                 </div>
               </div>
             </div>

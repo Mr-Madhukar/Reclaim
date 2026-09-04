@@ -118,6 +118,87 @@ export class AuthController {
     }
   }
 
+  async demoLogin(req: Request, res: Response): Promise<void> {
+    const requestedRole = ((req.body?.role || 'ADMIN') as string).toUpperCase();
+    const demoEmailMap: Record<string, string> = {
+      ADMIN: 'admin@reclaim.demo',
+      REVIEWER: 'reviewer@reclaim.demo',
+      OPS_VIEWER: 'ops@reclaim.demo',
+    };
+
+    const email = demoEmailMap[requestedRole];
+    if (!email) {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_ROLE',
+          message: `Invalid demo role: ${requestedRole}. Allowed roles: ADMIN, REVIEWER, OPS_VIEWER`,
+        },
+      });
+      return;
+    }
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        res.status(404).json({
+          error: {
+            code: 'DEMO_USER_NOT_FOUND',
+            message: `Demo user for role ${requestedRole} not found. Please run database seeding.`,
+          },
+        });
+        return;
+      }
+
+      const payload: AuthUserPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        merchantId: user.merchantId || undefined,
+      };
+
+      const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
+      const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          merchantId: user.merchantId,
+        },
+        accessToken,
+        refreshToken,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ err: message }, 'Demo login error');
+      res.status(500).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An error occurred during demo authentication',
+        },
+      });
+    }
+  }
+
   async me(req: AuthenticatedRequest, res: Response): Promise<void> {
     if (!req.user) {
       res.status(401).json({

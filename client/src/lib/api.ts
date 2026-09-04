@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import {
   AuthResponse,
+  UserRole,
   CaseFilterParams,
   MetricSummary,
   PolicyConfig,
@@ -129,6 +130,10 @@ export const api = {
   auth: {
     login: async (email: string, password: string): Promise<AuthResponse> => {
       const { data } = await apiClient.post<AuthResponse>('/auth/login', { email, password });
+      return data;
+    },
+    demoLogin: async (role: UserRole = 'ADMIN'): Promise<AuthResponse> => {
+      const { data } = await apiClient.post<AuthResponse>('/auth/demo', { role });
       return data;
     },
     me: async (): Promise<AuthResponse['user']> => {

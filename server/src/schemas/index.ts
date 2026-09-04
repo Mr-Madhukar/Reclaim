@@ -5,6 +5,10 @@ export const loginSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
 });
 
+export const demoLoginSchema = z.object({
+  role: z.enum(['ADMIN', 'REVIEWER', 'OPS_VIEWER']).default('ADMIN'),
+});
+
 export const updatePolicyConfigSchema = z.object({
   maxAttempts: z.number().int().min(1).max(10).optional(),
   cooldownMinutes: z.number().int().min(1).max(10080).optional(),

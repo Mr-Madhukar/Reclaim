@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { logger, sanitizeLog } from '../lib/logger';
+import { logger } from '../lib/logger';
 
 export type AuditActor = 'agent' | 'system' | `human:${string}` | `customer:${string}`;
 export type AuditEntityType = 'RecoveryCase' | 'RecoveryAction' | 'PolicyConfig' | 'Webhook' | 'Customer';
@@ -54,24 +54,32 @@ export class AuditService {
         },
       });
 
-      const sanitizedReason = sanitizeLog(input.reason);
+      const safeActor = typeof input.actor === 'string'
+        ? input.actor.replace(/[\r\n]/g, '').slice(0, 100)
+        : 'system';
+      const safeEntityId = typeof input.entityId === 'string'
+        ? input.entityId.replace(/[\r\n]/g, '').slice(0, 100)
+        : '';
 
       logger.info(
         {
           auditId: entry.id,
           entityType: input.entityType,
-          entityId: input.entityId,
+          entityId: safeEntityId,
           eventType: input.eventType,
-          actor: input.actor,
+          actor: safeActor,
         },
-        `[Audit Log] ${input.eventType}: ${sanitizedReason}`
+        '[Audit Log] Entry recorded successfully'
       );
 
       return entry;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = (err instanceof Error ? err.message : String(err)).replace(/[\r\n]/g, ' ').slice(0, 500);
+      const safeEntityId = typeof input.entityId === 'string'
+        ? input.entityId.replace(/[\r\n]/g, '').slice(0, 100)
+        : '';
       logger.error(
-        { err: sanitizeLog(message), entityId: input.entityId, eventType: input.eventType },
+        { err: message, entityId: safeEntityId, eventType: input.eventType },
         'Failed to write audit log entry'
       );
       throw err;

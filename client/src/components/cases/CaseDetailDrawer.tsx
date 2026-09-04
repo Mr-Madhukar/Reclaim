@@ -96,7 +96,7 @@ export const CaseDetailDrawer: React.FC<CaseDetailDrawerProps> = ({ caseId, onCl
         <div className="flex items-start justify-between pb-4 border-b border-cream-300 dark:border-surface-750">
           <div>
             <span className="text-[10px] font-mono uppercase text-brand-600 dark:text-brand-400 font-bold">
-              Case Inspection Drawer
+              Case Details &amp; Inspection
             </span>
             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
               {kase ? kase.customer.name : 'Loading Case...'}
@@ -224,7 +224,7 @@ export const CaseDetailDrawer: React.FC<CaseDetailDrawerProps> = ({ caseId, onCl
             <div className="p-5 rounded-2xl glass-card border-brand-500/20 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 font-mono">
-                  <span>Mandate &amp; Retry Sequence Flow</span>
+                  <span>Mandate &amp; Retry Sequence Flow (Timeline)</span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/30">
                   {kase.actions && kase.actions.length > 0 ? `${kase.actions.length} Touches Executed` : 'Attempt 1 Ready'}
@@ -408,7 +408,7 @@ export const CaseDetailDrawer: React.FC<CaseDetailDrawerProps> = ({ caseId, onCl
             <div className="space-y-3 pt-4 border-t border-cream-300 dark:border-surface-750">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center space-x-2">
                 <FileCode2 className="h-4 w-4 text-brand-500" />
-                <span>Intervention History &amp; Receipts ({kase.actions?.length || 0})</span>
+                <span>Intervention History &amp; Audit Trail ({kase.actions?.length || 0})</span>
               </h4>
 
               {kase.actions && kase.actions.length > 0 ? (

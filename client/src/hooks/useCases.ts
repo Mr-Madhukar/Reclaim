@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { CaseFilterParams, RecoveryCase, BatchRunResult } from '../types';
 
+const AUDIT_LOGS_KEY = 'audit-logs';
+
 export function useCases(filters?: CaseFilterParams) {
   return useQuery({
     queryKey: ['cases', filters],
@@ -26,7 +28,7 @@ export function useTriggerAction() {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['cases', 'detail', id] });
       queryClient.invalidateQueries({ queryKey: ['metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      queryClient.invalidateQueries({ queryKey: [AUDIT_LOGS_KEY] });
     },
   });
 }
@@ -40,7 +42,7 @@ export function useResolveEscalation() {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['cases', 'detail', id] });
       queryClient.invalidateQueries({ queryKey: ['metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      queryClient.invalidateQueries({ queryKey: [AUDIT_LOGS_KEY] });
     },
   });
 }
@@ -54,7 +56,7 @@ export function useLogPromiseToPay() {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['cases', 'detail', id] });
       queryClient.invalidateQueries({ queryKey: ['metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      queryClient.invalidateQueries({ queryKey: [AUDIT_LOGS_KEY] });
     },
   });
 }
@@ -66,7 +68,7 @@ export function useRunBatch() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      queryClient.invalidateQueries({ queryKey: [AUDIT_LOGS_KEY] });
     },
   });
 }

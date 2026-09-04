@@ -51,8 +51,8 @@ test.describe('Reclaim AI Revenue Recovery Agent — End-to-End Demo Flow', () =
       await caseRows.first().click();
       // Wait for drawer animation/rendering
       await page.waitForTimeout(1500);
-      // Use a more flexible selector with increased timeout
-      await expect(page.getByText(/Case Details|Timeline|Audit Trail/i).first())
+      // Use a resilient selector that matches Case Details, Case Inspection, or customer profile
+      await expect(page.getByText(/Case Details|Case Inspection|Timeline|Audit Trail|Customer Profile/i).first())
         .toBeVisible({ timeout: 20000 });
     }
   });

@@ -3,12 +3,6 @@ import { AuthContext } from './AuthContextCore';
 import { User, UserRole } from '../types';
 import { api } from '../lib/api';
 
-const DEMO_CREDENTIALS: Record<UserRole, { email: string; pass: string }> = {
-  ADMIN: { email: 'admin@reclaim.demo', pass: 'Demo@12345' },
-  REVIEWER: { email: 'reviewer@reclaim.demo', pass: 'Demo@12345' },
-  OPS_VIEWER: { email: 'ops@reclaim.demo', pass: 'Demo@12345' },
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('reclaim_auth_token'));
@@ -21,7 +15,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const storedToken = localStorage.getItem('reclaim_auth_token');
         if (!storedToken) {
-          const authData = await api.auth.login(DEMO_CREDENTIALS.ADMIN.email, DEMO_CREDENTIALS.ADMIN.pass);
+          const authData = await api.auth.demoLogin('ADMIN');
           if (mounted) {
             localStorage.setItem('reclaim_auth_token', authData.accessToken);
             setToken(authData.accessToken);
@@ -35,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch {
         try {
-          const authData = await api.auth.login(DEMO_CREDENTIALS.ADMIN.email, DEMO_CREDENTIALS.ADMIN.pass);
+          const authData = await api.auth.demoLogin('ADMIN');
           if (mounted) {
             localStorage.setItem('reclaim_auth_token', authData.accessToken);
             setToken(authData.accessToken);
@@ -83,9 +77,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchRole = async (targetRole: UserRole) => {
-    const creds = DEMO_CREDENTIALS[targetRole];
-    if (creds) {
-      await login(creds.email, creds.pass);
+    setIsLoading(true);
+    try {
+      const authData = await api.auth.demoLogin(targetRole);
+      localStorage.setItem('reclaim_auth_token', authData.accessToken);
+      setToken(authData.accessToken);
+      setUser(authData.user);
+    } catch (err) {
+      console.error(`Failed to switch role to ${targetRole}`, err);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 

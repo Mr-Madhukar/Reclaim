@@ -127,14 +127,21 @@ export class WebhookController {
       },
     });
 
-    const errorDesc = sanitizeLog(payment.error_description || 'Payment Failed');
+    const rawErrorDesc = typeof payment.error_description === 'string'
+      ? payment.error_description.replace(/[\r\n]/g, ' ').trim().slice(0, 200)
+      : 'Payment Failed';
+    const safeErrorDesc = sanitizeLog(rawErrorDesc);
+    const safePaymentId = typeof payment.id === 'string'
+      ? payment.id.replace(/[\r\n]/g, '').trim().slice(0, 100)
+      : '';
+
     await auditService.log({
       actor: 'system',
       entityType: 'RecoveryCase',
       entityId: recoveryCase.id,
       eventType: 'case_created',
-      afterJson: { event: WEBHOOK_EVENTS.PAYMENT_FAILED, paymentId: sanitizeLog(payment.id), amount: Number(payment.amount || 0) / 100 },
-      reason: `Recovery case opened via Razorpay webhook: ${errorDesc}`,
+      afterJson: { event: WEBHOOK_EVENTS.PAYMENT_FAILED, paymentId: safePaymentId, amount: Number(payment.amount || 0) / 100 },
+      reason: `Recovery case opened via Razorpay webhook: ${safeErrorDesc}`,
     });
 
     await cacheService.invalidateMetrics(merchant.id);
@@ -143,7 +150,8 @@ export class WebhookController {
     try {
       await caseService.processCase(recoveryCase.id);
     } catch (procErr) {
-      logger.warn({ err: procErr, caseId: recoveryCase.id }, 'Autonomous case processing completed with note');
+      const procErrMsg = sanitizeLog(procErr instanceof Error ? procErr.message : procErr);
+      logger.warn({ err: procErrMsg, caseId: sanitizeLog(recoveryCase.id) }, 'Autonomous case processing completed with note');
     }
   }
 
@@ -198,7 +206,10 @@ export class WebhookController {
           },
         });
 
-        const paymentRef = sanitizeLog(payment.id || orderId || 'captured');
+        const rawPaymentRef = typeof (payment.id || orderId) === 'string'
+          ? String(payment.id || orderId).replace(/[\r\n]/g, '').trim().slice(0, 100)
+          : 'captured';
+        const paymentRef = sanitizeLog(rawPaymentRef);
         await auditService.log(
           {
             actor: 'system',
@@ -271,23 +282,31 @@ export class WebhookController {
       },
     });
 
-    const invoiceNum = sanitizeLog(invoice.invoiceNumber);
+    const rawInvoiceNum = typeof invoice.invoiceNumber === 'string'
+      ? invoice.invoiceNumber.replace(/[\r\n]/g, '').trim().slice(0, 100)
+      : 'INV-UNKNOWN';
+    const safeInvoiceNum = sanitizeLog(rawInvoiceNum);
+    const safeInvoiceId = typeof invoice.id === 'string'
+      ? invoice.id.replace(/[\r\n]/g, '').trim().slice(0, 100)
+      : '';
     await auditService.log({
       actor: 'system',
       entityType: 'RecoveryCase',
       entityId: recoveryCase.id,
       eventType: 'case_created',
-      afterJson: { event: WEBHOOK_EVENTS.INVOICE_OVERDUE, invoiceId: sanitizeLog(invoice.id), amountDue: Number(invoice.amountDue) },
-      reason: `Receivables case created for overdue invoice ${invoiceNum}`,
+      afterJson: { event: WEBHOOK_EVENTS.INVOICE_OVERDUE, invoiceId: safeInvoiceId, amountDue: Number(invoice.amountDue) },
+      reason: `Receivables case created for overdue invoice ${safeInvoiceNum}`,
     });
 
     await cacheService.invalidateMetrics(merchant.id);
   }
 
   async handleRazorpayWebhook(req: Request, res: Response): Promise<void> {
-    const signature = req.headers['x-razorpay-signature'] as string;
+    const rawSignature = typeof req.headers['x-razorpay-signature'] === 'string'
+      ? req.headers['x-razorpay-signature'].replace(/[\r\n]/g, '').trim()
+      : '';
 
-    if (!signature) {
+    if (!rawSignature) {
       res.status(400).json({
         error: {
           code: 'MISSING_SIGNATURE',
@@ -298,7 +317,7 @@ export class WebhookController {
     }
 
     const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    if (!this.verifySignature(rawBody, signature)) {
+    if (!this.verifySignature(rawBody, rawSignature)) {
       logger.warn('Invalid Razorpay webhook signature');
       res.status(400).json({
         error: {
@@ -309,21 +328,22 @@ export class WebhookController {
       return;
     }
 
-    const { event, payload } = req.body;
-    const sanitizedEvent = sanitizeLog(event);
-    logger.info({ event: sanitizedEvent }, 'Received verified Razorpay webhook event');
+    const safeEvent = typeof req.body?.event === 'string'
+      ? req.body.event.replace(/[\r\n]/g, '').trim().slice(0, 100)
+      : 'unknown';
+    logger.info('Received verified Razorpay webhook event');
 
     try {
-      switch (event) {
+      switch (safeEvent) {
         case WEBHOOK_EVENTS.PAYMENT_FAILED:
-          await this.handlePaymentFailed(payload);
+          await this.handlePaymentFailed(req.body?.payload);
           break;
         case WEBHOOK_EVENTS.PAYMENT_CAPTURED:
         case WEBHOOK_EVENTS.ORDER_PAID:
-          await this.handlePaymentCaptured(payload);
+          await this.handlePaymentCaptured(req.body?.payload);
           break;
         case WEBHOOK_EVENTS.INVOICE_OVERDUE:
-          await this.handleInvoiceOverdue(payload);
+          await this.handleInvoiceOverdue(req.body?.payload);
           break;
         default:
           // Unhandled event types acknowledged without action
@@ -332,8 +352,8 @@ export class WebhookController {
 
       res.json({ status: 'ok', received: true });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      logger.error({ err: sanitizeLog(errorMessage), event: sanitizedEvent }, 'Error processing Razorpay webhook');
+      const errorMessage = (err instanceof Error ? err.message : String(err)).replace(/[\r\n]/g, ' ').slice(0, 500);
+      logger.error({ err: errorMessage }, 'Error processing Razorpay webhook');
       res.status(500).json({
         error: {
           code: 'WEBHOOK_PROCESSING_FAILED',
@@ -345,10 +365,35 @@ export class WebhookController {
 
   async simulateWebhook(req: Request, res: Response): Promise<void> {
     try {
-      const { event, amount, failureCode, failureReason, customerEmail, customerName } = req.body;
+      const rawEvent = typeof req.body?.event === 'string'
+        ? req.body.event.replace(/[\r\n]/g, '').trim()
+        : '';
+      const allowedEvents: string[] = Object.values(WEBHOOK_EVENTS);
+      const generatedEvent = allowedEvents.includes(rawEvent)
+        ? (rawEvent as typeof WEBHOOK_EVENTS[keyof typeof WEBHOOK_EVENTS])
+        : WEBHOOK_EVENTS.PAYMENT_FAILED;
 
-      const payloadAmount = (amount || 2499) * 100; // in paise
-      const generatedEvent = event || WEBHOOK_EVENTS.PAYMENT_FAILED;
+      const rawAmount = typeof req.body?.amount === 'number' && Number.isFinite(req.body.amount)
+        ? Math.max(1, req.body.amount)
+        : 2499;
+      const payloadAmount = rawAmount * 100; // in paise
+
+      const safeFailureCode = typeof req.body?.failureCode === 'string'
+        ? req.body.failureCode.replace(/[\r\n]/g, '').trim().slice(0, 100) || 'BAD_REQUEST_PAYMENT_TIMED_OUT'
+        : 'BAD_REQUEST_PAYMENT_TIMED_OUT';
+
+      const safeFailureReason = typeof req.body?.failureReason === 'string'
+        ? req.body.failureReason.replace(/[\r\n]/g, ' ').trim().slice(0, 500) || 'Bank gateway timed out during 3DS verification'
+        : 'Bank gateway timed out during 3DS verification';
+
+      const safeCustomerEmail = typeof req.body?.customerEmail === 'string'
+        ? req.body.customerEmail.replace(/[\r\n]/g, '').trim().slice(0, 255) || 'demo_customer@example.com'
+        : 'demo_customer@example.com';
+
+      const safeCustomerName = typeof req.body?.customerName === 'string'
+        ? req.body.customerName.replace(/[\r\n]/g, '').trim().slice(0, 100) || DEFAULT_CUSTOMER_NAME
+        : DEFAULT_CUSTOMER_NAME;
+
       const paymentId = `pay_sim_${Date.now()}`;
       const orderId = `order_sim_${Date.now()}`;
 
@@ -366,13 +411,13 @@ export class WebhookController {
                 status: 'failed',
                 order_id: orderId,
                 method: 'card',
-                error_code: failureCode || 'BAD_REQUEST_PAYMENT_TIMED_OUT',
-                error_description: failureReason || 'Bank gateway timed out during 3DS verification',
-                email: customerEmail || 'demo_customer@example.com',
+                error_code: safeFailureCode,
+                error_description: safeFailureReason,
+                email: safeCustomerEmail,
                 contact: '+919876543210',
-                name: customerName || DEFAULT_CUSTOMER_NAME,
+                name: safeCustomerName,
                 notes: {
-                  customer_name: customerName || DEFAULT_CUSTOMER_NAME,
+                  customer_name: safeCustomerName,
                 },
               },
             },
@@ -389,8 +434,8 @@ export class WebhookController {
                 currency: 'INR',
                 status: 'captured',
                 order_id: orderId,
-                email: customerEmail || 'demo_customer@example.com',
-                name: customerName || DEFAULT_CUSTOMER_NAME,
+                email: safeCustomerEmail,
+                name: safeCustomerName,
               },
             },
           },
@@ -406,8 +451,8 @@ export class WebhookController {
                 amount_due: payloadAmount,
                 currency: 'INR',
                 status: 'overdue',
-                customer_name: customerName || 'Enterprise Client Ltd',
-                customer_email: customerEmail || 'finance@enterprise.demo',
+                customer_name: safeCustomerName || 'Enterprise Client Ltd',
+                customer_email: safeCustomerEmail || 'finance@enterprise.demo',
                 customer_contact: '+919876500000',
               },
             },
@@ -448,8 +493,8 @@ export class WebhookController {
         res.json({ simulated: true, signature, event: generatedEvent, payload: webhookPayload });
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to simulate webhook';
-      logger.error({ err: sanitizeLog(errorMessage) }, 'Simulate webhook error');
+      const errorMessage = (err instanceof Error ? err.message : 'Failed to simulate webhook').replace(/[\r\n]/g, ' ').slice(0, 500);
+      logger.error({ err: errorMessage }, 'Simulate webhook error');
       res.status(500).json({
         error: {
           code: 'SIMULATION_ERROR',

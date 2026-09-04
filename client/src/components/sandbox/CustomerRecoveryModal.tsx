@@ -25,6 +25,9 @@ interface CustomerRecoveryModalProps {
 
 type PaymentTab = 'upi' | 'card' | 'netbanking';
 
+const TAB_ACTIVE_CLASS = 'bg-brand-500 text-white shadow-md';
+const TAB_INACTIVE_CLASS = 'text-cream-700 dark:text-slate-400 hover:text-brand-500';
+
 export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
   isOpen,
   onClose,
@@ -187,9 +190,7 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
                 <button
                   onClick={() => setActiveTab('upi')}
                   className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'upi'
-                      ? 'bg-brand-500 text-white shadow-md'
-                      : 'text-cream-700 dark:text-slate-400 hover:text-brand-500'
+                    activeTab === 'upi' ? TAB_ACTIVE_CLASS : TAB_INACTIVE_CLASS
                   }`}
                 >
                   <QrCode className="h-4 w-4" />
@@ -199,9 +200,7 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
                 <button
                   onClick={() => setActiveTab('card')}
                   className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'card'
-                      ? 'bg-brand-500 text-white shadow-md'
-                      : 'text-cream-700 dark:text-slate-400 hover:text-brand-500'
+                    activeTab === 'card' ? TAB_ACTIVE_CLASS : TAB_INACTIVE_CLASS
                   }`}
                 >
                   <CreditCard className="h-4 w-4" />
@@ -211,9 +210,7 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
                 <button
                   onClick={() => setActiveTab('netbanking')}
                   className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'netbanking'
-                      ? 'bg-brand-500 text-white shadow-md'
-                      : 'text-cream-700 dark:text-slate-400 hover:text-brand-500'
+                    activeTab === 'netbanking' ? TAB_ACTIVE_CLASS : TAB_INACTIVE_CLASS
                   }`}
                 >
                   <Building2 className="h-4 w-4" />
