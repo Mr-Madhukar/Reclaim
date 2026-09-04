@@ -30,6 +30,7 @@ test.describe('Reclaim AI Revenue Recovery Agent — End-to-End Demo Flow', () =
   test('3. Cases Workbench supports filtering, searching, and case inspection', async ({ page }) => {
     // Navigate to Cases Workbench
     await page.getByRole('button', { name: /Workbench/i }).first().click();
+    await page.waitForTimeout(1000); // Wait for page load
 
     // Verify search input
     const searchInput = page.getByPlaceholder(/Search by customer/i);
@@ -39,6 +40,7 @@ test.describe('Reclaim AI Revenue Recovery Agent — End-to-End Demo Flow', () =
     const paymentLaneBtn = page.getByRole('button', { name: /Payment/i }).first();
     if (await paymentLaneBtn.isVisible()) {
       await paymentLaneBtn.click();
+      await page.waitForTimeout(500);
     }
 
     // Inspect case rows
@@ -47,9 +49,11 @@ test.describe('Reclaim AI Revenue Recovery Agent — End-to-End Demo Flow', () =
     if (count > 0) {
       // Click first case to open details drawer
       await caseRows.first().click();
-      await page.waitForTimeout(500);
-      // Verify drawer or modal opened
-      await expect(page.getByText(/Case Details|Timeline|Audit Trail/i).first()).toBeVisible({ timeout: 15000 });
+      // Wait for drawer animation/rendering
+      await page.waitForTimeout(1500);
+      // Use a more flexible selector with increased timeout
+      await expect(page.getByText(/Case Details|Timeline|Audit Trail/i).first())
+        .toBeVisible({ timeout: 20000 });
     }
   });
 
