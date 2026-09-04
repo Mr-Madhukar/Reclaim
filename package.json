@@ -40,5 +40,20 @@
     "eslint-plugin-sonarjs": "^4.2.0",
     "globals": "^17.11.0",
     "typescript-eslint": "^8.67.0"
+  },
+  "main": "record_pitch.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mr-Madhukar/Reclaim.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mr-Madhukar/Reclaim/issues"
+  },
+  "homepage": "https://github.com/Mr-Madhukar/Reclaim#readme",
+  "dependencies": {
+    "playwright": "^1.62.1"
   }
 }

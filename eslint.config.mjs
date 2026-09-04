@@ -29,7 +29,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['server/**/*.ts', 'server/**/*.js'],
+    files: ['server/**/*.ts', 'server/**/*.js', '*.js', '*.ts', '*.mjs'],
     languageOptions: {
       ecmaVersion: 2022,
       globals: {
