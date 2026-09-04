@@ -83,10 +83,11 @@ export const WebhookSimulator: React.FC = () => {
         {/* Left Column: Event Config */}
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-cream-800 dark:text-slate-200">
+            <label htmlFor="webhook-event-type" className="text-xs font-bold text-cream-800 dark:text-slate-200">
               Webhook Event Type
             </label>
             <select
+              id="webhook-event-type"
               value={event}
               onChange={(e) => setEvent(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 font-mono"
@@ -100,10 +101,11 @@ export const WebhookSimulator: React.FC = () => {
 
           {event === 'payment.failed' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-cream-800 dark:text-slate-200">
+              <label htmlFor="webhook-failure-code" className="text-xs font-bold text-cream-800 dark:text-slate-200">
                 Failure Reason / Error Code
               </label>
               <select
+                id="webhook-failure-code"
                 value={failureCode}
                 onChange={(e) => setFailureCode(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 font-mono"
@@ -119,24 +121,26 @@ export const WebhookSimulator: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-cream-800 dark:text-slate-200">
+              <label htmlFor="webhook-amount" className="text-xs font-bold text-cream-800 dark:text-slate-200">
                 Transaction Amount (₹)
               </label>
               <input
+                id="webhook-amount"
                 type="number"
                 min="100"
                 max="500000"
                 value={amount}
-                onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setAmount(Number.parseFloat(e.target.value) || 0)}
                 className="w-full px-3 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-cream-800 dark:text-slate-200">
+              <label htmlFor="webhook-customer-name" className="text-xs font-bold text-cream-800 dark:text-slate-200">
                 Customer Name
               </label>
               <input
+                id="webhook-customer-name"
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
@@ -146,10 +150,11 @@ export const WebhookSimulator: React.FC = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-cream-800 dark:text-slate-200">
+            <label htmlFor="webhook-customer-email" className="text-xs font-bold text-cream-800 dark:text-slate-200">
               Customer Email
             </label>
             <input
+              id="webhook-customer-email"
               type="email"
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}

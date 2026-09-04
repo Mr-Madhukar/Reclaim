@@ -130,7 +130,7 @@ export const PolicyConfigView: React.FC = () => {
                     disabled={!isAdmin}
                     value={currentForm.maxAttempts || 3}
                     aria-label={`Max retry attempts for ${laneProps.label}`}
-                    onChange={(e) => handleChange(config.id, 'maxAttempts', parseInt(e.target.value))}
+                    onChange={(e) => handleChange(config.id, 'maxAttempts', Number.parseInt(e.target.value, 10))}
                     className="w-full accent-brand-500 cursor-pointer disabled:opacity-50"
                   />
                   <span className="text-[10px] text-cream-600 dark:text-slate-400 block">
@@ -155,7 +155,7 @@ export const PolicyConfigView: React.FC = () => {
                     disabled={!isAdmin}
                     value={currentForm.cooldownMinutes || 60}
                     aria-label={`Cool-down window in minutes for ${laneProps.label}`}
-                    onChange={(e) => handleChange(config.id, 'cooldownMinutes', parseInt(e.target.value))}
+                    onChange={(e) => handleChange(config.id, 'cooldownMinutes', Number.parseInt(e.target.value, 10))}
                     className="w-full accent-brand-500 cursor-pointer disabled:opacity-50"
                   />
                   <span className="text-[10px] text-cream-600 dark:text-slate-400 block">
@@ -180,7 +180,7 @@ export const PolicyConfigView: React.FC = () => {
                     disabled={!isAdmin}
                     value={currentForm.maxIncentiveAmount || 0}
                     aria-label={`Max incentive ceiling amount for ${laneProps.label}`}
-                    onChange={(e) => handleChange(config.id, 'maxIncentiveAmount', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleChange(config.id, 'maxIncentiveAmount', Number.parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white disabled:opacity-50"
                   />
                   <span className="text-[10px] text-cream-600 dark:text-slate-400 block">
@@ -205,7 +205,7 @@ export const PolicyConfigView: React.FC = () => {
                     disabled={!isAdmin}
                     value={currentForm.dailyCapGlobal || 500}
                     aria-label={`Daily outreach cap for ${laneProps.label}`}
-                    onChange={(e) => handleChange(config.id, 'dailyCapGlobal', parseInt(e.target.value) || 500)}
+                    onChange={(e) => handleChange(config.id, 'dailyCapGlobal', Number.parseInt(e.target.value, 10) || 500)}
                     className="w-full px-3 py-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs font-mono text-slate-900 dark:text-white disabled:opacity-50"
                   />
                   <span className="text-[10px] text-cream-600 dark:text-slate-400 block">

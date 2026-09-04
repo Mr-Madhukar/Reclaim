@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, FileCode, CheckCircle2 } from 'lucide-react';
 import { AuditLog } from '../../types';
 import { formatDate } from '../../lib/utils';
@@ -9,13 +9,30 @@ interface JsonDiffModalProps {
 }
 
 export const JsonDiffModal: React.FC<JsonDiffModalProps> = ({ log, onClose }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!log) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <dialog
+      open
+      aria-modal="true"
+      aria-label="Audit Receipt Diff"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in w-full h-full max-w-none max-h-none m-0 bg-transparent border-0"
+    >
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+      <button
+        type="button"
+        aria-label="Close audit diff backdrop"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm w-full h-full border-0 p-0 cursor-default"
         onClick={onClose}
       />
 
@@ -91,6 +108,6 @@ export const JsonDiffModal: React.FC<JsonDiffModalProps> = ({ log, onClose }) =>
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

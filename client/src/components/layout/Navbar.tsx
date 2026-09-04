@@ -15,13 +15,13 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { UserRole } from '../../types';
 
-export type MainTab = 'landing' | 'overview' | 'cases' | 'sandbox' | 'policies' | 'audit' | 'scorecard';
+export type MainTab = 'landing' | 'overview' | 'cases' | 'sandbox' | 'policies' | 'audit' | 'scorecard' | 'login';
 
 interface NavbarProps {
   activeTab: MainTab;
   onSelectTab: (tab: MainTab) => void;
   onOpenMobileMenu: () => void;
-  onOpenLoginModal: () => void;
+  onNavigateToLogin: () => void;
 }
 
 interface NavTabItem {
@@ -48,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   onOpenMobileMenu,
-  onOpenLoginModal,
+  onNavigateToLogin,
 }) => {
   const { user, switchRole } = useAuth();
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
@@ -81,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header role="banner" className="sticky top-0 z-40 w-full bg-cream-100/80 dark:bg-[#020202]/80 backdrop-blur-xl border-b border-cream-300/80 dark:border-white/[0.08] transition-colors">
+    <header className="sticky top-0 z-40 w-full bg-cream-100/80 dark:bg-[#020202]/80 backdrop-blur-xl border-b border-cream-300/80 dark:border-white/[0.08] transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left: Brand / Logo */}
         <div className="flex items-center space-x-3">
@@ -104,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Desktop Navigation Tabs */}
-        <nav role="navigation" aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-white/[0.03] p-1 rounded-full border border-cream-300/80 dark:border-white/[0.08] backdrop-blur-md">
+        <nav aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-white/[0.03] p-1 rounded-full border border-cream-300/80 dark:border-white/[0.08] backdrop-blur-md">
           {visibleNavTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -179,16 +179,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     onClick={() => {
                       setRoleDropdownOpen(false);
-                      onOpenLoginModal();
+                      onNavigateToLogin();
                     }}
-                    className="w-full text-center py-1.5 text-[11px] text-brand-600 dark:text-brand-400 hover:underline font-medium"
+                    className="w-full text-center py-1.5 text-[11px] text-brand-600 dark:text-brand-400 hover:underline font-semibold"
                   >
-                    Custom Login...
+                    Go to Login / Sign Up Page →
                   </button>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Direct Sign In / Sign Up Button */}
+          <button
+            type="button"
+            onClick={onNavigateToLogin}
+            className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/30 text-xs font-bold transition-all"
+          >
+            <span>Login / Sign Up</span>
+          </button>
 
           {/* Mobile Menu Trigger */}
           <button

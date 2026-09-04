@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Zap, Play, CheckCircle2, AlertCircle, RefreshCw, Lock } from 'lucide-react';
+import { Zap, Play, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useRunBatch } from '../../hooks/useCases';
 import { useAuth } from '../../hooks/useAuth';
 import { BatchRunResult } from '../../types';
 
 export const BatchRunBanner: React.FC = () => {
-  const { user, hasRole, switchRole } = useAuth();
+  const { hasRole } = useAuth();
   const runBatchMutation = useRunBatch();
   const [lastResult, setLastResult] = useState<BatchRunResult | null>(null);
 
   const isAdmin = hasRole(['ADMIN']);
+
+  if (!isAdmin) {
+    return null;
+  }
 
   const handleRunBatch = async () => {
     try {
@@ -40,40 +44,23 @@ export const BatchRunBanner: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-          {isAdmin ? (
-            <button
-              onClick={handleRunBatch}
-              disabled={runBatchMutation.isPending}
-              className="inline-flex items-center justify-center space-x-2.5 px-6 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-sm shadow-glow-orange hover:shadow-glow-orange-lg transition-all"
-            >
-              {runBatchMutation.isPending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>Processing Batch...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 fill-white" />
-                  <span>Run Recovery Batch</span>
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="flex items-center space-x-3 p-3 rounded-2xl bg-cream-300/40 dark:bg-surface-850 border border-cream-300 dark:border-surface-700">
-              <Lock className="h-4 w-4 text-amber-500 shrink-0" />
-              <div className="text-xs">
-                <span className="text-cream-800 dark:text-slate-300 block">
-                  Logged in as <strong className="font-mono">{user?.role}</strong> (Requires ADMIN)
-                </span>
-                <button
-                  onClick={() => switchRole('ADMIN')}
-                  className="text-brand-600 dark:text-brand-400 font-semibold underline text-[11px] mt-0.5"
-                >
-                  Switch to Admin Persona
-                </button>
-              </div>
-            </div>
-          )}
+          <button
+            onClick={handleRunBatch}
+            disabled={runBatchMutation.isPending}
+            className="inline-flex items-center justify-center space-x-2.5 px-6 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-sm shadow-glow-orange hover:shadow-glow-orange-lg transition-all"
+          >
+            {runBatchMutation.isPending ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span>Processing Batch...</span>
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4 fill-white" />
+                <span>Run Recovery Batch</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 

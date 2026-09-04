@@ -21,7 +21,7 @@ export function getHourInTimezone(date: Date, timezone: string): number {
     });
     const parts = formatter.formatToParts(date);
     const hourPart = parts.find((p) => p.type === 'hour');
-    return hourPart ? parseInt(hourPart.value, 10) : date.getUTCHours();
+    return hourPart ? Number.parseInt(hourPart.value, 10) : date.getUTCHours();
   } catch {
     // Fallback if timezone string is invalid
     return date.getUTCHours();

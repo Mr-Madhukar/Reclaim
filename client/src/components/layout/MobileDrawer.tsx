@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   X,
   Sparkles,
@@ -28,6 +28,17 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onSelectTab,
 }) => {
   const { user, switchRole } = useAuth();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -67,10 +78,17 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex xl:hidden animate-fade-in">
+    <dialog
+      open
+      aria-modal="true"
+      aria-label="Navigation Menu"
+      className="fixed inset-0 z-50 flex xl:hidden animate-fade-in w-full h-full max-w-none max-h-none m-0 p-0 bg-transparent border-0"
+    >
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+      <button
+        type="button"
+        aria-label="Close navigation drawer backdrop"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm w-full h-full border-0 p-0 cursor-default"
         onClick={onClose}
       />
 
@@ -119,6 +137,21 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 <span>{label}</span>
               </button>
             ))}
+
+            <button
+              type="button"
+              onClick={() => {
+                onSelectTab('login');
+                onClose();
+              }}
+              className={`w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all mt-3 ${
+                activeTab === 'login'
+                  ? 'bg-brand-500 text-white shadow-md'
+                  : 'text-brand-600 dark:text-brand-400 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30'
+              }`}
+            >
+              <span>Login / Sign Up Page</span>
+            </button>
           </div>
         </div>
 
@@ -149,6 +182,6 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

@@ -9,7 +9,7 @@ import { SandboxView } from './components/sandbox/SandboxView';
 import { PolicyConfigView } from './components/policies/PolicyConfigView';
 import { AuditView } from './components/audit/AuditView';
 import { EvaluatorScorecard } from './components/scorecard/EvaluatorScorecard';
-import { LoginModal } from './components/auth/LoginModal';
+import { LoginPage } from './components/auth/LoginPage';
 
 /** Map tab keys to human-readable page titles for screen reader announcements */
 const TAB_TITLES: Record<MainTab, string> = {
@@ -20,16 +20,28 @@ const TAB_TITLES: Record<MainTab, string> = {
   policies: 'Policy Configuration',
   audit: 'Audit Trail',
   scorecard: 'Evaluator Scorecard',
+  login: 'Sign In / Sign Up',
 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('landing');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
 
   const handleTabChange = (tab: MainTab) => {
     setActiveTab(tab);
   };
+
+  // Dedicated Login / Sign Up Page view
+  if (activeTab === 'login') {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-transparent text-slate-100 selection:bg-brand-500 selection:text-white relative">
+        <LoginPage
+          onSuccess={() => setActiveTab('overview')}
+          onBack={() => setActiveTab('landing')}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-transparent text-slate-100 selection:bg-brand-500 selection:text-white relative">
@@ -46,7 +58,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={handleTabChange}
         onOpenMobileMenu={() => setMobileMenuOpen(true)}
-        onOpenLoginModal={() => setLoginModalOpen(true)}
+        onNavigateToLogin={() => setActiveTab('login')}
       />
 
       {/* Slide-out Mobile Navigation */}
@@ -57,10 +69,9 @@ export default function App() {
         onSelectTab={handleTabChange}
       />
 
-      {/* Main Content Area with landmark role and accessible id */}
+      {/* Main Content Area with accessible id */}
       <main
         id="main-content"
-        role="main"
         aria-label={TAB_TITLES[activeTab]}
         tabIndex={-1}
         className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full focus:outline-none"
@@ -80,13 +91,7 @@ export default function App() {
       </div>
 
       {/* Footer */}
-      <Footer />
-
-      {/* Auth Modal */}
-      <LoginModal
-        isOpen={loginModalOpen}
-        onClose={() => setLoginModalOpen(false)}
-      />
+      <Footer onSelectTab={handleTabChange} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Copy, Check, Download } from 'lucide-react';
 import { MetricSummary } from '../../types';
 import { formatINR } from '../../lib/utils';
@@ -11,6 +11,17 @@ interface ExportReportModalProps {
 
 export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, onClose, summary }) => {
   const [copied, setCopied] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -131,8 +142,18 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+    <dialog
+      open
+      aria-modal="true"
+      aria-label="Evaluator Report Export"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in w-full h-full max-w-none max-h-none m-0 bg-transparent border-0"
+    >
+      <button
+        type="button"
+        aria-label="Close export report backdrop"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm w-full h-full border-0 p-0 cursor-default"
+        onClick={onClose}
+      />
 
       <div className="relative w-full max-w-2xl glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-cream-300 dark:border-surface-750 z-10 max-h-[90vh] overflow-y-auto space-y-6 animate-slide-up">
         <div className="flex items-start justify-between pb-4 border-b border-cream-300 dark:border-surface-750">
@@ -187,6 +208,6 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ isOpen, on
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

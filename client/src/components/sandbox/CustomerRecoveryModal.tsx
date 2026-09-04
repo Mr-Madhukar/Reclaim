@@ -277,11 +277,12 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
 
                   {/* VPA ID Input */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-cream-700 dark:text-slate-300">
+                    <label htmlFor="modal-upi-vpa" className="text-xs font-semibold text-cream-700 dark:text-slate-300">
                       Or pay with UPI ID / VPA
                     </label>
                     <div className="flex space-x-2">
                       <input
+                        id="modal-upi-vpa"
                         type="text"
                         value={upiIdInput}
                         onChange={(e) => setUpiIdInput(e.target.value)}
@@ -331,10 +332,11 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
 
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[11px] font-semibold text-cream-700 dark:text-slate-300 mb-1 block">
+                      <label htmlFor="modal-card-number" className="text-[11px] font-semibold text-cream-700 dark:text-slate-300 mb-1 block">
                         Card Number
                       </label>
                       <input
+                        id="modal-card-number"
                         type="text"
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
@@ -344,10 +346,11 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-semibold text-cream-700 dark:text-slate-300 mb-1 block">
+                        <label htmlFor="modal-card-expiry" className="text-[11px] font-semibold text-cream-700 dark:text-slate-300 mb-1 block">
                           Valid Thru (MM/YY)
                         </label>
                         <input
+                          id="modal-card-expiry"
                           type="text"
                           value={cardExpiry}
                           onChange={(e) => setCardExpiry(e.target.value)}
@@ -355,10 +358,11 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-cream-700 dark:text-slate-300 mb-1 block">
+                        <label htmlFor="modal-card-cvv" className="text-[11px] font-semibold text-cream-700 dark:text-slate-300 mb-1 block">
                           CVV / CVC
                         </label>
                         <input
+                          id="modal-card-cvv"
                           type="password"
                           maxLength={3}
                           value={cardCvv}
@@ -451,10 +455,11 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs font-semibold text-cream-700 dark:text-slate-300 block">
+                <label htmlFor="modal-otp-input" className="text-xs font-semibold text-cream-700 dark:text-slate-300 block">
                   One-Time Password (OTP)
                 </label>
                 <input
+                  id="modal-otp-input"
                   type="text"
                   maxLength={6}
                   value={otpInput}

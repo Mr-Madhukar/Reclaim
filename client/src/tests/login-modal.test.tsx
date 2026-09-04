@@ -22,23 +22,27 @@ vi.mock('../hooks/useTheme', () => ({
   }),
 }));
 
-import { LoginModal } from '../components/auth/LoginModal';
+import { LoginPage } from '../components/auth/LoginPage';
 
-describe('LoginModal Component', () => {
-  it('does not render when isOpen is false', () => {
-    render(<LoginModal isOpen={false} onClose={() => {}} />);
+describe('LoginPage Component', () => {
+  it('renders RECLAIM branding and logo', () => {
+    render(<LoginPage />);
 
-    expect(screen.queryByText('Reclaim Auth')).toBeNull();
+    expect(screen.getByText('RECLAIM')).toBeDefined();
+    const logoImg = document.querySelector('img[alt="Reclaim Brand Logo"]');
+    expect(logoImg).toBeDefined();
+    expect(logoImg?.getAttribute('src')).toBe('/android-chrome-192x192.png');
   });
 
-  it('renders the modal when isOpen is true', () => {
-    render(<LoginModal isOpen={true} onClose={() => {}} />);
+  it('renders Sign In and Sign Up options', () => {
+    render(<LoginPage />);
 
-    expect(screen.getByText('Reclaim Auth')).toBeDefined();
+    expect(screen.getAllByText('Sign In').length).toBeGreaterThan(0);
+    expect(screen.getByText('Sign Up')).toBeDefined();
   });
 
   it('renders email and password input fields', () => {
-    render(<LoginModal isOpen={true} onClose={() => {}} />);
+    render(<LoginPage />);
 
     const emailInput = document.querySelector('input[type="email"], input[placeholder*="email" i]');
     const passwordInput = document.querySelector('input[type="password"]');
@@ -47,17 +51,8 @@ describe('LoginModal Component', () => {
     expect(passwordInput).toBeDefined();
   });
 
-  it('renders close button', () => {
-    const closeFn = vi.fn();
-    render(<LoginModal isOpen={true} onClose={closeFn} />);
-
-    // The modal should have a close mechanism (X button or overlay click)
-    const closeButtons = document.querySelectorAll('button');
-    expect(closeButtons.length).toBeGreaterThan(0);
-  });
-
   it('renders quick-switch role buttons', () => {
-    render(<LoginModal isOpen={true} onClose={() => {}} />);
+    render(<LoginPage />);
 
     const content = document.body.textContent || '';
     expect(content).toContain('Admin');
@@ -66,9 +61,8 @@ describe('LoginModal Component', () => {
   });
 
   it('renders submit button', () => {
-    render(<LoginModal isOpen={true} onClose={() => {}} />);
+    render(<LoginPage />);
 
-    // At least one submit mechanism should exist
     const allButtons = document.querySelectorAll('button');
     expect(allButtons.length).toBeGreaterThan(0);
   });
