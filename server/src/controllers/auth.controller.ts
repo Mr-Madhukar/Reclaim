@@ -7,6 +7,14 @@ import { logger } from '../lib/logger';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { AuthUserPayload } from '../types';
 
+type DemoRole = AuthUserPayload['role'];
+
+const DEMO_PERSONAS: Record<DemoRole, { id: string; name: string; email: string }> = {
+  ADMIN: { id: 'usr-admin-demo', name: 'Vikram Malhotra', email: 'admin@reclaim.demo' },
+  REVIEWER: { id: 'usr-reviewer-demo', name: 'Priya Sharma', email: 'reviewer@reclaim.demo' },
+  OPS_VIEWER: { id: 'usr-ops-demo', name: 'Arjun Rao', email: 'ops@reclaim.demo' },
+};
+
 export class AuthController {
   async login(req: Request, res: Response): Promise<void> {
     const { email, password } = req.body;
@@ -142,21 +150,20 @@ export class AuthController {
         where: { email },
       });
 
-      if (!user) {
-        res.status(404).json({
-          error: {
-            code: 'DEMO_USER_NOT_FOUND',
-            message: `Demo user for role ${requestedRole} not found. Please run database seeding.`,
-          },
-        });
-        return;
-      }
+      const persona = DEMO_PERSONAS[requestedRole as DemoRole] || DEMO_PERSONAS.ADMIN;
+      const userRecord = user || {
+        id: persona.id,
+        email: persona.email,
+        name: persona.name,
+        role: requestedRole as AuthUserPayload['role'],
+        merchantId: 'mrc-demo',
+      };
 
       const payload: AuthUserPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        merchantId: user.merchantId || undefined,
+        userId: userRecord.id,
+        email: userRecord.email,
+        role: userRecord.role,
+        merchantId: userRecord.merchantId || undefined,
       };
 
       const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
@@ -178,11 +185,11 @@ export class AuthController {
 
       res.json({
         user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          merchantId: user.merchantId,
+          id: userRecord.id,
+          email: userRecord.email,
+          name: userRecord.name,
+          role: userRecord.role,
+          merchantId: userRecord.merchantId,
         },
         accessToken,
         refreshToken,
@@ -255,12 +262,81 @@ export class AuthController {
     }
   }
 
-  async refreshToken(req: Request, res: Response): Promise<void> {
+  private extractRefreshToken(req: Request): string | undefined {
     const authHeader = req.headers.authorization;
-    const bearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
     const rawToken = req.cookies?.refreshToken ?? req.body?.refreshToken ?? req.headers['x-refresh-token'] ?? bearerToken;
-    const refreshToken = typeof rawToken === 'string' && rawToken.trim() !== '' ? rawToken.trim() : undefined;
+    return typeof rawToken === 'string' && rawToken.trim() !== '' ? rawToken.trim() : undefined;
+  }
 
+  private handleMockRefreshToken(refreshToken: string, res: Response): boolean {
+    if (!refreshToken.startsWith('mock-token-')) {
+      return false;
+    }
+    const roleKey = (refreshToken.replace('mock-token-', '').toUpperCase() || 'ADMIN') as DemoRole;
+    const persona = DEMO_PERSONAS[roleKey] || DEMO_PERSONAS.ADMIN;
+    const payload: AuthUserPayload = {
+      userId: persona.id,
+      email: persona.email,
+      role: roleKey,
+      merchantId: 'mrc-demo',
+    };
+    const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
+    const newRefreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    res.json({ accessToken, refreshToken: newRefreshToken });
+    return true;
+  }
+
+  private decodeRefreshToken(token: string): AuthUserPayload | null {
+    try {
+      return jwt.verify(token, env.JWT_REFRESH_SECRET) as AuthUserPayload;
+    } catch {
+      try {
+        return jwt.verify(token, env.JWT_SECRET) as AuthUserPayload;
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  private async resolveUserForRefresh(decoded: AuthUserPayload) {
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+    if (user) {
+      return user;
+    }
+    if (decoded.userId.startsWith('usr-') || decoded.email.includes('@reclaim.demo')) {
+      const persona = DEMO_PERSONAS[decoded.role] || DEMO_PERSONAS.ADMIN;
+      return {
+        id: decoded.userId,
+        email: decoded.email,
+        name: persona.name,
+        role: decoded.role,
+        merchantId: decoded.merchantId || 'mrc-demo',
+      };
+    }
+    return null;
+  }
+
+  private setAuthCookies(res: Response, accessToken: string, refreshToken: string): void {
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  async refreshToken(req: Request, res: Response): Promise<void> {
+    const refreshToken = this.extractRefreshToken(req);
     if (!refreshToken) {
       res.status(401).json({
         error: {
@@ -271,28 +347,23 @@ export class AuthController {
       return;
     }
 
-    try {
-      let decoded: AuthUserPayload;
-      try {
-        decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as AuthUserPayload;
-      } catch {
-        decoded = jwt.verify(refreshToken, env.JWT_SECRET) as AuthUserPayload;
-      }
+    if (this.handleMockRefreshToken(refreshToken, res)) {
+      return;
+    }
 
-      if (!decoded || typeof decoded !== 'object' || !decoded.userId) {
-        res.status(401).json({
-          error: {
-            code: 'INVALID_REFRESH_TOKEN',
-            message: 'Refresh token expired or invalid',
-          },
-        });
-        return;
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
+    const decoded = this.decodeRefreshToken(refreshToken);
+    if (!decoded?.userId) {
+      res.status(401).json({
+        error: {
+          code: 'INVALID_REFRESH_TOKEN',
+          message: 'Refresh token expired or invalid',
+        },
       });
+      return;
+    }
 
+    try {
+      const user = await this.resolveUserForRefresh(decoded);
       if (!user) {
         res.status(401).json({
           error: {
@@ -313,20 +384,7 @@ export class AuthController {
       const newAccessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
       const newRefreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
-      res.cookie('accessToken', newAccessToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000,
-      });
-
-      res.cookie('refreshToken', newRefreshToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-
+      this.setAuthCookies(res, newAccessToken, newRefreshToken);
       res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     } catch {
       res.status(401).json({

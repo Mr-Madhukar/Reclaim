@@ -9,7 +9,7 @@ interface KpiCardGridProps {
 }
 
 export const KpiCardGrid: React.FC<KpiCardGridProps> = ({ summary, isLoading }) => {
-  if (isLoading) {
+  if (isLoading && !summary) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {[1, 2, 3, 4].map((i) => (

@@ -8,7 +8,7 @@ import { RecoveryCharts } from './RecoveryCharts';
 import { useMetricsSummary } from '../../hooks/useMetrics';
 
 export const DashboardOverview: React.FC = () => {
-  const { data: summary, isLoading } = useMetricsSummary(10000);
+  const { data: summary, isLoading } = useMetricsSummary(30000);
 
   return (
     <div className="space-y-8 animate-fade-in">

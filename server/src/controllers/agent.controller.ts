@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class AgentController {
   async runBatch(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const startTime = Date.now();
     try {
       logger.info({ userId: req.user?.userId }, 'Starting autonomous recovery batch run via API');
 
@@ -12,9 +13,29 @@ export class AgentController {
       const batchResult = await caseService.runBatch(req.user?.merchantId, { limit });
       const metrics = await caseService.getMetrics(req.user?.merchantId);
 
+      const results = batchResult.results || [];
+      const recoveredCount = results.filter(
+        (r) => r.status === 'RECOVERED' || r.outcome === 'recovered'
+      ).length;
+      const stoppedCount = results.filter(
+        (r) => r.ruleTriggered || r.outcome === 'stopped' || r.outcome === 'guardrail_stop'
+      ).length;
+      const escalatedCount = results.filter(
+        (r) => r.status === 'ESCALATED_TO_HUMAN' || (r.status as string) === 'ESCALATED' || r.outcome === 'escalated'
+      ).length;
+      const errorsCount = results.filter(
+        (r) => r.outcome === 'error'
+      ).length;
+      const durationMs = Date.now() - startTime;
+
       res.json({
         message: 'Batch run finished',
         processedCount: batchResult.processedCount,
+        recoveredCount,
+        stoppedCount,
+        escalatedCount,
+        errorsCount,
+        durationMs,
         results: batchResult.results,
         metrics,
         evaluation: metrics.evaluation,

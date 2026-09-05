@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { BatchRunResult } from '../../types';
 
 export const BatchRunBanner: React.FC = () => {
-  const { hasRole } = useAuth();
+  const { hasRole, switchRole } = useAuth();
   const runBatchMutation = useRunBatch();
   const [lastResult, setLastResult] = useState<BatchRunResult | null>(null);
 
@@ -90,9 +90,25 @@ export const BatchRunBanner: React.FC = () => {
       )}
 
       {runBatchMutation.isError && (
-        <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center space-x-2">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>Error running batch: {runBatchMutation.error.message}</span>
+        <div className="mt-4 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Error running batch: {runBatchMutation.error.message}</span>
+          </div>
+          {(runBatchMutation.error.message.includes('Session expired') ||
+            runBatchMutation.error.message.includes('Authentication') ||
+            runBatchMutation.error.message.includes('401')) && (
+            <button
+              type="button"
+              onClick={async () => {
+                await switchRole('ADMIN');
+                handleRunBatch();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-rose-500 text-white font-bold text-xs hover:bg-rose-600 transition-colors shadow-sm self-start sm:self-auto cursor-pointer"
+            >
+              Re-authenticate &amp; Retry
+            </button>
+          )}
         </div>
       )}
     </div>

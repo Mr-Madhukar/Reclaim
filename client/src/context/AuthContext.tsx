@@ -71,8 +71,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
 
+    const handleAuthExpired = () => {
+      setToken(null);
+      setUser(null);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('reclaim:auth_expired', handleAuthExpired);
+    }
+
     return () => {
       mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('reclaim:auth_expired', handleAuthExpired);
+      }
     };
   }, []);
 
@@ -82,6 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const authData = await api.auth.login(email, password);
         localStorage.setItem('reclaim_auth_token', authData.accessToken);
+        if (authData.refreshToken) {
+          localStorage.setItem('reclaim_refresh_token', authData.refreshToken);
+        }
         setToken(authData.accessToken);
         setUser(authData.user);
       } catch (err) {
@@ -100,6 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const persona = DEMO_PERSONAS[matchedRole];
           const mockToken = `mock-token-${matchedRole.toLowerCase()}`;
           localStorage.setItem('reclaim_auth_token', mockToken);
+          localStorage.setItem('reclaim_refresh_token', mockToken);
+          localStorage.setItem('reclaim_demo_role', matchedRole);
           setToken(mockToken);
           setUser(persona);
           return;
@@ -118,6 +135,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // ignore
     } finally {
       localStorage.removeItem('reclaim_auth_token');
+      localStorage.removeItem('reclaim_refresh_token');
+      localStorage.removeItem('reclaim_demo_role');
       setToken(null);
       setUser(null);
     }
@@ -129,6 +148,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const authData = await api.auth.demoLogin(targetRole);
         localStorage.setItem('reclaim_auth_token', authData.accessToken);
+        if (authData.refreshToken) {
+          localStorage.setItem('reclaim_refresh_token', authData.refreshToken);
+        }
+        localStorage.setItem('reclaim_demo_role', targetRole);
         setToken(authData.accessToken);
         setUser(authData.user);
       } catch {
@@ -136,6 +159,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const persona = DEMO_PERSONAS[targetRole];
         const mockToken = `mock-token-${targetRole.toLowerCase()}`;
         localStorage.setItem('reclaim_auth_token', mockToken);
+        localStorage.setItem('reclaim_refresh_token', mockToken);
+        localStorage.setItem('reclaim_demo_role', targetRole);
         setToken(mockToken);
         setUser(persona);
       }

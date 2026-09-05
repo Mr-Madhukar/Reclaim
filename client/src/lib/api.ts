@@ -19,6 +19,9 @@ const getApiBaseUrl = (): string => {
     const trimmed = envUrl.trim().replace(/\/$/, '');
     return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
   }
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return '/api';
+  }
   return 'http://localhost:4000/api';
 };
 
@@ -61,15 +64,50 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 async function executeTokenRefresh(): Promise<string | null> {
+  const currentToken = localStorage.getItem('reclaim_auth_token');
+  const storedRefreshToken = localStorage.getItem('reclaim_refresh_token');
+
   try {
-    const { data } = await axios.post<{ accessToken: string }>(
+    const { data } = await axios.post<{ accessToken: string; refreshToken?: string }>(
       `${API_BASE_URL}/auth/refresh`,
-      {},
-      { withCredentials: true }
+      { refreshToken: storedRefreshToken || currentToken },
+      {
+        headers: {
+          'x-refresh-token': storedRefreshToken || '',
+          Authorization: currentToken ? `Bearer ${currentToken}` : undefined,
+        },
+        withCredentials: true,
+      }
     );
+    if (data.refreshToken) {
+      localStorage.setItem('reclaim_refresh_token', data.refreshToken);
+    }
     return data.accessToken;
   } catch {
+    // If demo token or demo role, auto-renew with demo login
+    const demoRole = localStorage.getItem('reclaim_demo_role');
+    const isDemoToken = currentToken && (currentToken.startsWith('mock-token-') || currentToken.includes('admin') || Boolean(demoRole));
+    if (isDemoToken) {
+      try {
+        const role = (demoRole || 'ADMIN') as UserRole;
+        const { data } = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/demo`, { role });
+        if (data.accessToken) {
+          localStorage.setItem('reclaim_auth_token', data.accessToken);
+          if (data.refreshToken) {
+            localStorage.setItem('reclaim_refresh_token', data.refreshToken);
+          }
+          return data.accessToken;
+        }
+      } catch {
+        // ignore demo renew failure
+      }
+    }
+
     localStorage.removeItem('reclaim_auth_token');
+    localStorage.removeItem('reclaim_refresh_token');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('reclaim:auth_expired'));
+    }
     return null;
   }
 }

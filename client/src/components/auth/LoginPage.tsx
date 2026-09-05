@@ -394,9 +394,15 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     </div>
 
     <fieldset className="space-y-1.5 border-0 p-0 m-0">
-      <legend className="text-xs font-semibold text-slate-800 dark:text-slate-300">
-        Platform Role
-      </legend>
+      <div className="flex items-center justify-between">
+        <legend className="text-xs font-semibold text-slate-800 dark:text-slate-300">
+          Platform Role
+        </legend>
+        <span className="text-[10px] text-brand-600 dark:text-brand-400 font-mono px-2 py-0.5 rounded-md bg-brand-500/10 border border-brand-500/20 font-semibold flex items-center space-x-1">
+          <Sparkles className="h-3 w-3" />
+          <span>Demo Mode: RBAC Testing</span>
+        </span>
+      </div>
       <div className="grid grid-cols-3 gap-2">
         {ROLE_OPTIONS.map(({ role, label }) => (
           <button
@@ -413,6 +419,9 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           </button>
         ))}
       </div>
+      <p className="text-[10px] text-slate-500 dark:text-zinc-400 pt-0.5 leading-tight">
+        ℹ️ In enterprise production, Admin is invite-only. Role selection is enabled here for Hackathon RBAC evaluation.
+      </p>
     </fieldset>
 
     <button
