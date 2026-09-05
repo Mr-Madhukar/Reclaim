@@ -5,12 +5,10 @@ import {
   Lock,
   ArrowRight,
   Download,
-  CreditCard,
   QrCode,
   Clock,
   Ban,
   AlertCircle,
-  Sparkles,
 } from 'lucide-react';
 import { formatINR } from '../../lib/utils';
 import { downloadPaymentReceipt } from '../../lib/receipt';
@@ -251,26 +249,26 @@ export const CustomerPublicCheckout: React.FC<CustomerPublicCheckoutProps> = ({ 
     <div className="min-h-screen py-10 px-4 sm:px-6 flex flex-col items-center justify-center bg-surface-950 text-slate-100">
       <div className="w-full max-w-lg rounded-3xl bg-surface-900 border border-surface-750 shadow-2xl overflow-hidden animate-fade-in flex flex-col">
         {/* Brand Header */}
-        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-brand-600 p-5 text-white flex items-center justify-between shadow-md">
+        <div className="bg-gradient-to-r from-[#071933] via-[#0b2447] to-[#061429] p-5 text-white flex items-center justify-between shadow-md border-b border-blue-500/20">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-              <ShieldCheck className="h-6 w-6 text-emerald-300" />
+            <div className="h-10 w-10 rounded-2xl bg-blue-500/15 backdrop-blur-sm flex items-center justify-center border border-blue-400/30 shadow-inner">
+              <ShieldCheck className="h-5 w-5 text-blue-400" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-sm tracking-wide">Razorpay Checkout</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 font-mono">
+                <span className="font-extrabold text-sm tracking-wide">Razorpay Secured Checkout</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 font-mono font-medium">
                   256-Bit SSL
                 </span>
               </div>
-              <p className="text-xs text-indigo-100">
+              <p className="text-xs text-blue-200/80">
                 Merchant: <strong>{caseData.merchant.name}</strong>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="text-xs px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
           >
             Home
           </button>
@@ -294,25 +292,66 @@ export const CustomerPublicCheckout: React.FC<CustomerPublicCheckoutProps> = ({ 
         <div className="p-6 space-y-6">
           {step === 'DETAILS' && (
             <>
-              {/* Official Gateway Button */}
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-600/15 via-indigo-600/15 to-brand-500/15 border border-indigo-500/30 space-y-3">
-                <div className="flex items-center space-x-2 text-indigo-400 text-xs font-bold uppercase font-mono">
-                  <Sparkles className="h-4 w-4 text-brand-400" />
-                  <span>Official Razorpay Gateway (Recommended)</span>
+              {/* Official Razorpay Gateway Card */}
+              <div className="relative overflow-hidden p-5 rounded-2xl bg-gradient-to-br from-[#0c1f3d] via-[#08152b] to-[#050d1a] border border-blue-500/30 shadow-xl shadow-blue-950/40 group hover:border-blue-400/50 transition-all duration-300 space-y-4">
+                <div className="absolute -top-12 -right-12 w-36 h-36 bg-blue-500/15 rounded-full blur-2xl pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative flex items-center justify-center h-11 w-11 rounded-2xl bg-gradient-to-br from-[#0C83FD] via-[#0256D0] to-[#01357a] text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/20 shrink-0">
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6">
+                        <path d="M14.5 2.5L5.5 13H11.5L9.5 21.5L18.5 11H12.5L14.5 2.5Z" fill="white" />
+                      </svg>
+                      <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-[#071325]" />
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-extrabold text-sm text-white tracking-tight">
+                          Razorpay Standard Checkout
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap">
+                          Official
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">
+                        Complete your interrupted payment in 10 seconds via UPI, Cards, or NetBanking
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleOfficialRazorpayPay}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0C83FD] to-[#0256D0] hover:from-[#1E8FFF] hover:to-[#0969DA] active:scale-[0.98] disabled:opacity-50 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer"
+                  >
+                    <span>{isProcessing ? 'Opening Gateway...' : 'Launch Gateway'}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Complete your interrupted payment in 10 seconds via UPI (Google Pay, PhonePe, Paytm), Cards, or NetBanking.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleOfficialRazorpayPay}
-                  disabled={isProcessing}
-                  className="w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-500 hover:to-brand-500 disabled:opacity-50 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/25 transition-all cursor-pointer"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  <span>Pay {formatINR(caseData.amount)} via Official Gateway</span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+
+                {/* Bottom Trust & Supported Rails */}
+                <div className="pt-3 border-t border-blue-900/40 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                  <div className="flex items-center space-x-1.5 flex-wrap">
+                    <span className="text-slate-400 font-mono">Accepted:</span>
+                    <span className="px-1.5 py-0.5 rounded bg-blue-950/70 border border-blue-800/40 text-blue-200 font-medium">
+                      UPI / GPay / PhonePe
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-blue-950/70 border border-blue-800/40 text-blue-200 font-medium">
+                      Cards (Visa/Mastercard/RuPay)
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-blue-950/70 border border-blue-800/40 text-blue-200 font-medium">
+                      50+ NetBanking
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-slate-400 font-mono">
+                    <Lock className="h-3 w-3 text-emerald-400" />
+                    <span>256-Bit SSL · PCI-DSS</span>
+                  </div>
+                </div>
               </div>
 
               {/* Instant Simulator Options */}

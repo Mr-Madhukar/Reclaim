@@ -26,8 +26,8 @@ interface CustomerRecoveryModalProps {
 
 type PaymentTab = 'upi' | 'card' | 'netbanking';
 
-const TAB_ACTIVE_CLASS = 'bg-brand-500 text-white shadow-md';
-const TAB_INACTIVE_CLASS = 'text-cream-700 dark:text-slate-400 hover:text-brand-500';
+const TAB_ACTIVE_CLASS = 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold';
+const TAB_INACTIVE_CLASS = 'text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium';
 
 export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
   isOpen,
@@ -207,27 +207,27 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
       <div className="relative w-full max-w-lg rounded-3xl bg-cream-100 dark:bg-surface-900 border border-cream-300 dark:border-surface-700 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Razorpay Brand Header */}
-        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-brand-600 p-5 text-white flex items-center justify-between shadow-md">
+        <div className="bg-gradient-to-r from-[#071933] via-[#0b2447] to-[#061429] p-5 text-white flex items-center justify-between shadow-md border-b border-blue-500/20">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-              <ShieldCheck className="h-6 w-6 text-emerald-300" />
+            <div className="h-10 w-10 rounded-2xl bg-blue-500/15 backdrop-blur-sm flex items-center justify-center border border-blue-400/30 shadow-inner">
+              <ShieldCheck className="h-5 w-5 text-blue-400" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-sm tracking-wide">Razorpay Checkout</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 font-mono">
+                <span className="font-extrabold text-sm tracking-wide">Razorpay Secured Checkout</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 font-mono font-medium">
                   256-Bit SSL
                 </span>
               </div>
-              <p className="text-xs text-indigo-100">
-                Merchant: <strong>Reclaim SaaS Services</strong>
+              <p className="text-xs text-blue-200/80">
+                Merchant: <strong>{kase.merchant?.name || 'Reclaim SaaS Services'}</strong>
               </p>
             </div>
           </div>
 
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
             title="Close Checkout"
           >
             <X className="h-5 w-5" />
@@ -259,40 +259,78 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
           {step === 'SELECT' && (
             <>
               {/* Official Razorpay Gateway Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-600/15 via-indigo-600/15 to-brand-500/15 border border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
-                <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-md">
-                    RZP
+              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0c1f3d] via-[#08152b] to-[#050d1a] border border-blue-500/30 shadow-xl shadow-blue-950/40 group hover:border-blue-400/50 transition-all duration-300">
+                {/* Ambient glow accent */}
+                <div className="absolute -top-12 -right-12 w-36 h-36 bg-blue-500/15 rounded-full blur-2xl pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col gap-4">
+                  {/* Top Row: Brand, Title, Badge, Action Button */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div className="flex items-center space-x-3">
+                      {/* Razorpay Authentic Brand Logo Mark */}
+                      <div className="relative flex items-center justify-center h-11 w-11 rounded-2xl bg-gradient-to-br from-[#0C83FD] via-[#0256D0] to-[#01357a] text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/20 shrink-0">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6">
+                          <path d="M14.5 2.5L5.5 13H11.5L9.5 21.5L18.5 11H12.5L14.5 2.5Z" fill="white" />
+                        </svg>
+                        <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 ring-2 ring-[#071325]" />
+                        </span>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-extrabold text-sm text-white tracking-tight">
+                            Razorpay Standard Checkout
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[9px] font-bold tracking-wider uppercase whitespace-nowrap">
+                            Test Mode
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-0.5">
+                          Standard Checkout popup (UPI, GPay, PhonePe, Cards, NetBanking)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Launch Button */}
+                    <button
+                      type="button"
+                      onClick={handleOfficialRazorpayPay}
+                      disabled={isProcessing}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0C83FD] to-[#0256D0] hover:from-[#1E8FFF] hover:to-[#0969DA] active:scale-[0.98] disabled:opacity-50 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer"
+                    >
+                      <span>{isProcessing ? 'Opening Gateway...' : 'Launch Gateway'}</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <div>
-                    <div className="flex items-center space-x-1.5">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
-                        Official Razorpay Gateway
+
+                  {/* Bottom Row: Supported Methods & Trust Badges */}
+                  <div className="pt-3 border-t border-blue-900/40 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                    <div className="flex items-center space-x-1.5 flex-wrap">
+                      <span className="text-slate-400 font-mono">Accepted:</span>
+                      <span className="px-1.5 py-0.5 rounded bg-blue-950/70 border border-blue-800/40 text-blue-200 font-medium">
+                        UPI / GPay / PhonePe
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                        TEST MODE
+                      <span className="px-1.5 py-0.5 rounded bg-blue-950/70 border border-blue-800/40 text-blue-200 font-medium">
+                        Cards (Visa/Mastercard/RuPay)
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-blue-950/70 border border-blue-800/40 text-blue-200 font-medium">
+                        50+ NetBanking
                       </span>
                     </div>
-                    <p className="text-[11px] text-cream-600 dark:text-slate-400">
-                      Standard Checkout popup (UPI, GPay, PhonePe, Cards, NetBanking)
-                    </p>
+                    <div className="flex items-center space-x-1 text-slate-400 font-mono">
+                      <Lock className="h-3 w-3 text-emerald-400" />
+                      <span>256-Bit SSL · PCI-DSS</span>
+                    </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleOfficialRazorpayPay}
-                  disabled={isProcessing}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-500 hover:to-brand-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer"
-                >
-                  <span>Launch Gateway</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
               </div>
 
               <div className="relative flex py-1 items-center">
                 <div className="flex-grow border-t border-cream-300 dark:border-surface-750"></div>
-                <span className="flex-shrink mx-3 text-[10px] font-mono uppercase text-cream-500 dark:text-slate-500">
-                  OR USE FAST IN-APP SIMULATOR
+                <span className="flex-shrink mx-3 px-2.5 py-0.5 rounded-full bg-cream-200 dark:bg-surface-800 text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border border-cream-300 dark:border-surface-700">
+                  Or use instant in-app simulator
                 </span>
                 <div className="flex-grow border-t border-cream-300 dark:border-surface-750"></div>
               </div>
@@ -334,30 +372,52 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
               {activeTab === 'upi' && (
                 <div className="space-y-5 animate-fade-in">
                   <div className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-2xl bg-cream-200/60 dark:bg-surface-850 border border-cream-300 dark:border-surface-750">
-                    {/* Simulated Dynamic QR Code */}
-                    <div className="relative p-3 bg-white rounded-2xl shadow-inner border border-slate-200 flex flex-col items-center">
-                      <div className="h-32 w-32 bg-slate-900 rounded-xl flex items-center justify-center relative overflow-hidden">
-                        {/* QR pattern mock */}
-                        <div className="grid grid-cols-5 gap-1.5 p-2 w-full h-full opacity-90">
-                          {Array.from({ length: 25 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className={`rounded-xs ${
-                                (i * 7) % 3 === 0 || i === 0 || i === 4 || i === 20 || i === 24
-                                  ? 'bg-white'
-                                  : 'bg-transparent'
-                              }`}
-                            />
-                          ))}
-                        </div>
+                    {/* Simulated Dynamic QR Code with authentic finder patterns */}
+                    <div className="relative p-3 bg-white rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center shrink-0">
+                      <div className="h-32 w-32 bg-white rounded-xl flex items-center justify-center relative p-1.5">
+                        <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900" fill="currentColor">
+                          {/* Top-left finder pattern */}
+                          <rect x="2" y="2" width="28" height="28" rx="4" />
+                          <rect x="6" y="6" width="20" height="20" rx="2" fill="white" />
+                          <rect x="10" y="10" width="12" height="12" rx="2" />
+                          {/* Top-right finder pattern */}
+                          <rect x="70" y="2" width="28" height="28" rx="4" />
+                          <rect x="74" y="6" width="20" height="20" rx="2" fill="white" />
+                          <rect x="78" y="10" width="12" height="12" rx="2" />
+                          {/* Bottom-left finder pattern */}
+                          <rect x="2" y="70" width="28" height="28" rx="4" />
+                          <rect x="6" y="74" width="20" height="20" rx="2" fill="white" />
+                          <rect x="10" y="78" width="12" height="12" rx="2" />
+                          {/* Data elements */}
+                          <rect x="34" y="4" width="6" height="6" rx="1" />
+                          <rect x="46" y="4" width="6" height="6" rx="1" />
+                          <rect x="58" y="4" width="6" height="6" rx="1" />
+                          <rect x="34" y="16" width="18" height="6" rx="1" />
+                          <rect x="4" y="34" width="6" height="18" rx="1" />
+                          <rect x="16" y="34" width="6" height="6" rx="1" />
+                          <rect x="16" y="46" width="6" height="12" rx="1" />
+                          <rect x="34" y="34" width="8" height="8" rx="1" />
+                          <rect x="58" y="34" width="8" height="8" rx="1" />
+                          <rect x="72" y="34" width="6" height="18" rx="1" />
+                          <rect x="86" y="46" width="10" height="6" rx="1" />
+                          <rect x="34" y="58" width="12" height="6" rx="1" />
+                          <rect x="54" y="58" width="12" height="6" rx="1" />
+                          <rect x="72" y="58" width="8" height="8" rx="1" />
+                          <rect x="86" y="58" width="8" height="8" rx="1" />
+                          <rect x="34" y="72" width="6" height="24" rx="1" />
+                          <rect x="46" y="80" width="18" height="6" rx="1" />
+                          <rect x="72" y="72" width="12" height="12" rx="1" />
+                          <rect x="88" y="88" width="8" height="8" rx="1" />
+                        </svg>
+                        {/* Center UPI Badge */}
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="h-8 w-8 rounded-lg bg-brand-500 flex items-center justify-center shadow-lg border-2 border-white">
-                            <QrCode className="h-5 w-5 text-white" />
+                          <div className="h-7 w-7 rounded-md bg-[#0C83FD] flex items-center justify-center shadow-md ring-2 ring-white">
+                            <span className="text-[8px] font-black text-white font-mono tracking-tighter">UPI</span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-1 mt-2 text-[10px] font-mono text-slate-600">
-                        <Clock className="h-3 w-3 text-amber-500" />
+                      <div className="flex items-center space-x-1.5 mt-2 text-[10px] font-mono text-slate-600 dark:text-slate-400">
+                        <Clock className="h-3 w-3 text-amber-500 animate-pulse" />
                         <span>Valid: {formatTimer(timerSeconds)}</span>
                       </div>
                     </div>
@@ -369,17 +429,18 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
                       </span>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { name: 'Google Pay', color: 'hover:border-blue-500' },
-                          { name: 'PhonePe', color: 'hover:border-purple-500' },
-                          { name: 'Paytm UPI', color: 'hover:border-sky-500' },
-                          { name: 'CRED UPI', color: 'hover:border-neutral-900' },
+                          { name: 'Google Pay', badge: 'GPay', dot: 'bg-blue-500', color: 'hover:border-blue-500' },
+                          { name: 'PhonePe', badge: 'Pe', dot: 'bg-purple-600', color: 'hover:border-purple-500' },
+                          { name: 'Paytm UPI', badge: 'Paytm', dot: 'bg-sky-500', color: 'hover:border-sky-500' },
+                          { name: 'CRED UPI', badge: 'CRED', dot: 'bg-neutral-800', color: 'hover:border-neutral-900' },
                         ].map((app) => (
                           <button
                             key={app.name}
                             onClick={() => handleSimulateUpiApp(app.name)}
                             disabled={isProcessing}
-                            className={`flex items-center justify-center p-2.5 rounded-xl bg-white dark:bg-surface-800 border border-cream-300 dark:border-surface-700 text-xs font-semibold text-slate-800 dark:text-slate-200 ${app.color} shadow-xs hover:scale-102 transition-all`}
+                            className={`flex items-center space-x-2 p-2.5 rounded-xl bg-white dark:bg-surface-800 border border-cream-300 dark:border-surface-700 text-xs font-semibold text-slate-800 dark:text-slate-200 ${app.color} shadow-xs hover:scale-102 transition-all cursor-pointer`}
                           >
+                            <span className={`h-2 w-2 rounded-full ${app.dot} shrink-0`} />
                             <span>{app.name}</span>
                           </button>
                         ))}
