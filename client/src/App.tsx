@@ -10,6 +10,7 @@ import { PolicyConfigView } from './components/policies/PolicyConfigView';
 import { AuditView } from './components/audit/AuditView';
 import { EvaluatorScorecard } from './components/scorecard/EvaluatorScorecard';
 import { LoginPage } from './components/auth/LoginPage';
+import { CustomerPublicCheckout } from './components/public/CustomerPublicCheckout';
 import { useAuth } from './hooks/useAuth';
 
 /** Map tab keys to human-readable page titles for screen reader announcements */
@@ -28,6 +29,27 @@ export default function App() {
   const { user, isLoading } = useAuth();
   const [requestedTab, setRequestedTab] = useState<MainTab>('landing');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [publicCheckoutCaseId, setPublicCheckoutCaseId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('checkoutCaseId') || params.get('caseId');
+    }
+    return null;
+  });
+
+  // Dedicated Public Customer Checkout Portal (No login barrier for end customers)
+  if (publicCheckoutCaseId) {
+    return (
+      <CustomerPublicCheckout
+        caseId={publicCheckoutCaseId}
+        onClose={() => {
+          setPublicCheckoutCaseId(null);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setRequestedTab('landing');
+        }}
+      />
+    );
+  }
 
   // Tab change handler enforcing authentication guard
   const handleTabChange = (tab: MainTab) => {

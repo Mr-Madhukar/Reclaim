@@ -80,6 +80,12 @@ export interface RecoveryCase {
   closedReason?: string | null;
   actions: RecoveryAction[];
   promiseToPay?: PromiseToPay | null;
+  merchant?: {
+    id?: string;
+    name: string;
+    slug?: string;
+    timezone?: string;
+  };
 }
 
 export interface PolicyConfig {

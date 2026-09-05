@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { RecoveryCase } from '../../types';
 import { formatINR } from '../../lib/utils';
+import { downloadPaymentReceipt } from '../../lib/receipt';
 
 interface CustomerRecoveryModalProps {
   isOpen: boolean;
@@ -74,6 +75,78 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const handleOfficialRazorpayPay = () => {
+    setIsProcessing(true);
+
+    const openRazorpay = () => {
+      const razorpayKey =
+        (import.meta as unknown as { env?: { VITE_RAZORPAY_KEY_ID?: string } }).env?.VITE_RAZORPAY_KEY_ID ||
+        'rzp_test_TUnRfl7f02A0Eu';
+
+      const options = {
+        key: razorpayKey,
+        amount: Math.round(Number(kase.amount) * 100),
+        currency: 'INR',
+        name: kase.merchant?.name || 'Reclaim SaaS Services',
+        description: `Autonomous Recovery - Case #${kase.id.slice(0, 8)}`,
+        image: 'https://cdn.razorpay.com/static/assets/logo/rzp.svg',
+        prefill: {
+          name: kase.customer?.name || 'Customer',
+          email: kase.customer?.email || 'customer@example.com',
+          contact: kase.customer?.phone || '+919876543210',
+        },
+        notes: {
+          caseId: kase.id,
+          sourceRefId: kase.sourceRefId,
+        },
+        theme: {
+          color: '#4f46e5',
+        },
+        handler: async (response: { razorpay_payment_id?: string }) => {
+          const pid = response.razorpay_payment_id || `pay_rzp_${window.crypto.randomUUID().slice(0, 8)}`;
+          setPaymentId(pid);
+          setSelectedMethodName('Razorpay Official Gateway');
+          try {
+            await onPaymentSuccess(`Razorpay Official Gateway (${pid})`);
+            setIsProcessing(false);
+            setStep('SUCCESS');
+          } catch {
+            setIsProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+          },
+        },
+      };
+
+      const win = window as unknown as { Razorpay?: new (opts: typeof options) => { open: () => void } };
+      if (win.Razorpay) {
+        const rzpInstance = new win.Razorpay(options);
+        rzpInstance.open();
+      } else {
+        alert('Razorpay Checkout SDK not ready. You can also complete payment using the instant UPI simulator below.');
+        setIsProcessing(false);
+      }
+    };
+
+    const win = window as unknown as { Razorpay?: unknown };
+    if (!win.Razorpay) {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = openRazorpay;
+      script.onerror = () => {
+        setIsProcessing(false);
+        alert('Unable to load Razorpay SDK. Please check your network or use the instant UPI simulator below.');
+      };
+      document.body.appendChild(script);
+    } else {
+      openRazorpay();
+    }
+  };
+
   const handleSimulateUpiApp = async (appName: string) => {
     setSelectedMethodName(`UPI (${appName})`);
     setStep('UPI_WAITING');
@@ -82,7 +155,7 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
       try {
         await onPaymentSuccess(`UPI - ${appName}`);
         setIsProcessing(false);
-        setPaymentId(`pay_recov_${window.crypto.randomUUID().replace(/-/g, '').slice(0, 10)}`);
+        setPaymentId(`pay_recov_${window.crypto.randomUUID().replaceAll('-', '').slice(0, 10)}`);
         setStep('SUCCESS');
       } catch {
         setIsProcessing(false);
@@ -185,6 +258,45 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
           {step === 'SELECT' && (
             <>
+              {/* Official Razorpay Gateway Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-600/15 via-indigo-600/15 to-brand-500/15 border border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-md">
+                    RZP
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        Official Razorpay Gateway
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                        TEST MODE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-cream-600 dark:text-slate-400">
+                      Standard Checkout popup (UPI, GPay, PhonePe, Cards, NetBanking)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOfficialRazorpayPay}
+                  disabled={isProcessing}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-500 hover:to-brand-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer"
+                >
+                  <span>Launch Gateway</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-cream-300 dark:border-surface-750"></div>
+                <span className="flex-shrink mx-3 text-[10px] font-mono uppercase text-cream-500 dark:text-slate-500">
+                  OR USE FAST IN-APP SIMULATOR
+                </span>
+                <div className="flex-grow border-t border-cream-300 dark:border-surface-750"></div>
+              </div>
+
               {/* Payment Method Selector Tabs */}
               <div className="grid grid-cols-3 gap-2 p-1 rounded-2xl bg-cream-200 dark:bg-surface-800 border border-cream-300 dark:border-surface-700">
                 <button
@@ -538,11 +650,13 @@ export const CustomerRecoveryModal: React.FC<CustomerRecoveryModalProps> = ({
                   Done &amp; Return
                 </button>
                 <button
-                  onClick={() => alert(`Receipt saved for Case ${kase.id}`)}
-                  className="px-4 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-800 border border-cream-300 dark:border-surface-700 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5"
+                  type="button"
+                  onClick={() => downloadPaymentReceipt(kase, paymentId, selectedMethodName)}
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer shadow-xs"
+                  title="Download Official Tax Invoice & Print Receipt"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  <span>Receipt</span>
+                  <span>Download Receipt</span>
                 </button>
               </div>
             </div>

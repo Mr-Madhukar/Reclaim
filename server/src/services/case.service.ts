@@ -25,6 +25,8 @@ type RecoveryCaseWithRelations = Prisma.RecoveryCaseGetPayload<{
   };
 }>;
 
+const DEFAULT_MERCHANT_NAME = 'Reclaim SaaS Services';
+
 export class CaseService {
   /**
    * Retrieve failure code and raw reason from PaymentAttempt if PAYMENT lane
@@ -175,6 +177,14 @@ export class CaseService {
         },
         subject: diagnosis.customerCopy.subject,
         message: `${diagnosis.customerCopy.body}\nPayment link: ${link.shortUrl}`,
+        metadata: {
+          caseId: recoveryCase.id,
+          referenceId: recoveryCase.sourceRefId,
+          amount: Number(recoveryCase.amount),
+          lane: recoveryCase.lane,
+          paymentLink: link.shortUrl,
+          merchantName: recoveryCase.merchant?.name || DEFAULT_MERCHANT_NAME,
+        },
       });
     }
 
@@ -204,6 +214,14 @@ export class CaseService {
         },
         subject: diagnosis.customerCopy.subject,
         message: `${diagnosis.customerCopy.body}\nRe-authorize: ${mandate.reauthUrl}`,
+        metadata: {
+          caseId: recoveryCase.id,
+          referenceId: recoveryCase.sourceRefId,
+          amount: Number(recoveryCase.amount),
+          lane: recoveryCase.lane,
+          paymentLink: mandate.reauthUrl,
+          merchantName: recoveryCase.merchant?.name || DEFAULT_MERCHANT_NAME,
+        },
       });
     }
 
@@ -227,6 +245,13 @@ export class CaseService {
         },
         subject: 'Special offer to complete your checkout',
         message: `${diagnosis.customerCopy.body}\nUse coupon code ${incentiveCode} for an instant ₹200 discount.`,
+        metadata: {
+          caseId: recoveryCase.id,
+          referenceId: recoveryCase.sourceRefId,
+          amount: Math.max(0, Number(recoveryCase.amount) - 200),
+          lane: recoveryCase.lane,
+          merchantName: recoveryCase.merchant?.name || DEFAULT_MERCHANT_NAME,
+        },
       });
     }
 
@@ -249,6 +274,13 @@ export class CaseService {
         },
         subject: diagnosis.customerCopy.subject,
         message: diagnosis.customerCopy.body,
+        metadata: {
+          caseId: recoveryCase.id,
+          referenceId: recoveryCase.sourceRefId,
+          amount: Number(recoveryCase.amount),
+          lane: recoveryCase.lane,
+          merchantName: recoveryCase.merchant?.name || DEFAULT_MERCHANT_NAME,
+        },
       });
     }
 

@@ -10,10 +10,13 @@ import {
   AlertCircle,
   FileCode2,
   Lock,
+  Receipt,
+  Download,
 } from 'lucide-react';
 import { useCaseDetail, useTriggerAction, useResolveEscalation, useLogPromiseToPay } from '../../hooks/useCases';
 import { useAuth } from '../../hooks/useAuth';
 import { Customer, RecoveryAction, RecoveryCase } from '../../types';
+import { downloadPaymentReceipt } from '../../lib/receipt';
 import {
   formatINR,
   formatDate,
@@ -242,6 +245,38 @@ const RetrySequenceVisualizer: React.FC<RetrySequenceVisualizerProps> = ({ kase 
           </p>
         </div>
       </div>
+
+      {isRecovered && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2 animate-fade-in">
+          <div className="flex items-center space-x-2">
+            <Receipt className="h-4 w-4 text-emerald-500 shrink-0" />
+            <div>
+              <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                Official Payment Receipt Available
+              </span>
+              <span className="text-[10px] text-cream-600 dark:text-slate-400 block">
+                Tax invoice with cryptographic audit stamp &amp; Razorpay verification
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              downloadPaymentReceipt(
+                kase,
+                (kase.actions?.[0]?.payloadJson as Record<string, unknown>)?.paymentId as string ||
+                  `pay_recov_${kase.id.slice(0, 8)}`,
+                'Razorpay Gateway'
+              )
+            }
+            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
+            title="Download Tax Invoice & Print Receipt"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Receipt</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

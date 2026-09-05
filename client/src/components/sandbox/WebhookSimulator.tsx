@@ -15,7 +15,7 @@ export const WebhookSimulator: React.FC = () => {
   const [amount, setAmount] = useState<number>(3499);
   const [failureCode, setFailureCode] = useState<string>('BAD_REQUEST_PAYMENT_TIMED_OUT');
   const [customerName, setCustomerName] = useState<string>('Vikram Malhotra');
-  const [customerEmail, setCustomerEmail] = useState<string>('vikram.m@techscale.demo');
+  const [customerEmail, setCustomerEmail] = useState<string>('mrmadhukarjii@gmail.com');
   const [isFiring, setIsFiring] = useState<boolean>(false);
   const [lastResponse, setLastResponse] = useState<{
     signature: string;
@@ -150,16 +150,29 @@ export const WebhookSimulator: React.FC = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="webhook-customer-email" className="text-xs font-bold text-cream-800 dark:text-slate-200">
-              Customer Email
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="webhook-customer-email" className="text-xs font-bold text-cream-800 dark:text-slate-200">
+                Customer Email
+              </label>
+              <button
+                type="button"
+                onClick={() => setCustomerEmail('mrmadhukarjii@gmail.com')}
+                className="text-[10px] text-brand-600 dark:text-brand-400 hover:underline font-semibold"
+              >
+                Reset to Verified Email
+              </button>
+            </div>
             <input
               id="webhook-customer-email"
               type="email"
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="e.g. yourname@gmail.com"
               className="w-full px-3 py-2.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-700 text-xs text-slate-900 dark:text-white font-mono"
             />
+            <p className="text-[11px] text-cream-700 dark:text-slate-400">
+              💡 <span className="font-semibold">Live Inbox Delivery:</span> Enter a real email address (e.g. your personal Gmail) to receive the live interactive recovery email with Razorpay payment link. Mock domains (<span className="font-mono text-amber-500">.demo</span>, <span className="font-mono text-amber-500">example.com</span>) bounce because they have no mail servers.
+            </p>
           </div>
 
           <button

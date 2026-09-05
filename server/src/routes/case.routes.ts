@@ -20,6 +20,10 @@ caseRouter.post('/', authenticateToken, validateBody(createCaseSchema), (req, re
   caseController.createCase(req, res);
 });
 
+caseRouter.get('/:id/public', (req, res) => {
+  caseController.getPublicCase(req, res);
+});
+
 caseRouter.get('/:id', authenticateToken, (req, res) => {
   caseController.getCase(req, res);
 });

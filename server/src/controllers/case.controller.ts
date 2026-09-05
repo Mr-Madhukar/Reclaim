@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { caseService } from '../services/case.service';
 import { auditService } from '../services/audit.service';
 import { prisma } from '../lib/prisma';
@@ -97,6 +97,56 @@ export class CaseController {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : DEFAULT_UNKNOWN_ERROR;
       logger.error({ err: sanitizeLog(errorMessage), caseId: sanitizeLog(req.params.id) }, 'Get case controller error');
+      res.status(500).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to retrieve case details',
+        },
+      });
+    }
+  }
+
+  /**
+   * Public customer-facing case endpoint (no merchant auth required)
+   * Safely returns only public details needed to pay or self-service
+   */
+  async getPublicCase(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const kase = await caseService.getCaseById(id);
+
+      if (!kase) {
+        res.status(404).json({
+          error: {
+            code: 'CASE_NOT_FOUND',
+            message: 'Payment recovery case not found or link has expired',
+          },
+        });
+        return;
+      }
+
+      res.json({
+        data: {
+          id: kase.id,
+          sourceRefId: kase.sourceRefId,
+          amount: Number(kase.amount),
+          lane: kase.lane,
+          status: kase.status,
+          rootCause: kase.rootCause,
+          customer: {
+            name: kase.customer?.name || 'Customer',
+            email: kase.customer?.email || '',
+            phone: kase.customer?.phone || '',
+          },
+          merchant: {
+            name: kase.merchant?.name || 'Reclaim SaaS Services',
+          },
+        },
+      });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : DEFAULT_UNKNOWN_ERROR;
+      logger.error({ err: sanitizeLog(errorMessage), caseId: sanitizeLog(req.params.id) }, 'Get public case controller error');
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',
