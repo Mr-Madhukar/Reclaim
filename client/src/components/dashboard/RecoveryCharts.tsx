@@ -60,7 +60,7 @@ export const RecoveryCharts: React.FC<RecoveryChartsProps> = ({ summary }) => {
             <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
               ₹ Financial Yield by Recovery Lane
             </h4>
-            <p className="text-xs text-cream-700 dark:text-slate-400">
+            <p className="text-xs text-cream-800 dark:text-slate-300">
               Measured revenue recovered vs revenue at risk
             </p>
           </div>
@@ -108,7 +108,7 @@ export const RecoveryCharts: React.FC<RecoveryChartsProps> = ({ summary }) => {
             <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
               Root-Cause Diagnosis Distribution
             </h4>
-            <p className="text-xs text-cream-700 dark:text-slate-400">
+            <p className="text-xs text-cream-800 dark:text-slate-300">
               AI classified categories across the case batch
             </p>
           </div>
@@ -143,8 +143,8 @@ export const RecoveryCharts: React.FC<RecoveryChartsProps> = ({ summary }) => {
                 formatter={(val) => [`${val} Cases`, 'Frequency'] as [string, string]}
               />
               <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                {rootCauses.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                {rootCauses.map((entry) => (
+                  <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                 ))}
               </Bar>
             </BarChart>

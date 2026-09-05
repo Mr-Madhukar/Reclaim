@@ -1,6 +1,9 @@
 packages:
   - 'server'
   - 'client'
+overrides:
+  deepmerge-ts: ^8.0.2
+  qs: ^6.16.0
 allowBuilds:
   '@google/genai': true
   '@prisma/client': true

@@ -215,9 +215,9 @@ export const LaneShowcase: React.FC = () => {
                 <span>Bounded Action Catalog</span>
               </div>
               <ul className="space-y-2.5">
-                {current.boundedActions.map((action, idx) => (
+                {current.boundedActions.map((action) => (
                   <li
-                    key={idx}
+                    key={action}
                     className="p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-cream-300/80 dark:border-white/[0.06] text-xs font-mono text-slate-800 dark:text-zinc-300 flex items-start space-x-2"
                   >
                     <span className="text-brand-500 font-bold">›</span>
@@ -234,9 +234,9 @@ export const LaneShowcase: React.FC = () => {
                 <span>Deterministic Stopping Rules</span>
               </div>
               <ul className="space-y-2.5">
-                {current.stoppingRules.map((rule, idx) => (
+                {current.stoppingRules.map((rule) => (
                   <li
-                    key={idx}
+                    key={rule}
                     className="p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 text-xs text-slate-800 dark:text-zinc-300 flex items-start space-x-2"
                   >
                     <Clock className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />

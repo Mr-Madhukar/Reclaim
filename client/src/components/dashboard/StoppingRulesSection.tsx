@@ -90,7 +90,7 @@ export const StoppingRulesSection: React.FC<StoppingRulesSectionProps> = ({
           <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Stopping Rules &amp; Guardrail Telemetry
           </h3>
-          <p className="text-xs sm:text-sm text-cream-700 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-cream-800 dark:text-slate-300 mt-1">
             Zero runaway agent loops. 100% of interventions are validated against strict business policies before dispatch.
           </p>
         </div>
@@ -128,7 +128,7 @@ export const StoppingRulesSection: React.FC<StoppingRulesSectionProps> = ({
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block mt-0.5">
                   {rule.name}
                 </span>
-                <p className="text-[11px] text-cream-600 dark:text-slate-400 mt-1 leading-snug">
+                <p className="text-[11px] text-cream-700 dark:text-slate-300 mt-1 leading-snug">
                   {rule.desc}
                 </p>
               </div>
@@ -138,7 +138,7 @@ export const StoppingRulesSection: React.FC<StoppingRulesSectionProps> = ({
       </div>
 
       {/* Footer Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-cream-300/80 dark:border-surface-750 text-xs text-cream-700 dark:text-slate-400">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-cream-300/80 dark:border-surface-750 text-xs text-cream-800 dark:text-slate-300">
         <div className="flex items-center space-x-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
           <span>

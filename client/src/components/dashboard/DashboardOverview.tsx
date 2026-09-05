@@ -17,7 +17,7 @@ export const DashboardOverview: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Revenue Recovery Command Center
           </h2>
-          <p className="text-xs sm:text-sm text-cream-700 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-cream-800 dark:text-slate-300 mt-1">
             Real-time financial telemetry, loss lane conversion rates, and deterministic stopping rule enforcement.
           </p>
         </div>

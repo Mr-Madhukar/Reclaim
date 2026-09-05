@@ -53,5 +53,11 @@
   "homepage": "https://github.com/Mr-Madhukar/Reclaim#readme",
   "dependencies": {
     "playwright": "^1.62.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "deepmerge-ts": "^8.0.2",
+      "qs": "^6.16.0"
+    }
   }
 }

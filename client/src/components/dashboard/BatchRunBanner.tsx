@@ -83,7 +83,7 @@ export const BatchRunBanner: React.FC = () => {
           <div className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400">
             Escalated: <strong>{lastResult.escalatedCount}</strong>
           </div>
-          <div className="text-cream-600 dark:text-slate-400 text-[11px]">
+          <div className="text-cream-800 dark:text-slate-300 text-[11px]">
             Duration: {lastResult.durationMs}ms
           </div>
         </div>

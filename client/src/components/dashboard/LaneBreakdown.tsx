@@ -57,7 +57,7 @@ export const LaneBreakdown: React.FC<LaneBreakdownProps> = ({ summary }) => {
                   <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
                     {lane.name}
                   </h4>
-                  <p className="text-[11px] text-cream-700 dark:text-slate-400">
+                  <p className="text-[11px] text-cream-800 dark:text-slate-300">
                     {lane.sub}
                   </p>
                 </div>
@@ -67,7 +67,7 @@ export const LaneBreakdown: React.FC<LaneBreakdownProps> = ({ summary }) => {
             {/* Financial Metrics */}
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-cream-300/80 dark:border-surface-750/80 text-xs">
               <div>
-                <span className="text-cream-600 dark:text-slate-400 block text-[11px]">
+                <span className="text-cream-800 dark:text-slate-300 block text-[11px]">
                   At Risk
                 </span>
                 <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
@@ -75,7 +75,7 @@ export const LaneBreakdown: React.FC<LaneBreakdownProps> = ({ summary }) => {
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-cream-600 dark:text-slate-400 block text-[11px]">
+                <span className="text-cream-800 dark:text-slate-300 block text-[11px]">
                   Recovered
                 </span>
                 <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
@@ -98,7 +98,7 @@ export const LaneBreakdown: React.FC<LaneBreakdownProps> = ({ summary }) => {
               </div>
             </div>
 
-            <div className="text-[11px] font-mono text-cream-600 dark:text-slate-400 text-right">
+            <div className="text-[11px] font-mono text-cream-800 dark:text-slate-300 text-right">
               {lane.data.caseCount} Total Cases In Lane
             </div>
           </div>

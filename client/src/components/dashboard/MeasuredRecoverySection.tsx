@@ -39,7 +39,7 @@ export const MeasuredRecoverySection: React.FC<MeasuredRecoverySectionProps> = (
           <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Measured Financial Recovery &amp; ROI Telemetry
           </h3>
-          <p className="text-xs sm:text-sm text-cream-700 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-cream-800 dark:text-slate-300 mt-1">
             Auditable proof of actual revenue salvaged with Razorpay capture sync and zero unverified projections.
           </p>
         </div>
@@ -61,13 +61,13 @@ export const MeasuredRecoverySection: React.FC<MeasuredRecoverySectionProps> = (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-5 rounded-2xl bg-cream-200/50 dark:bg-surface-850/80 border border-cream-300 dark:border-surface-750">
         {/* Step 1: Gross At Risk */}
         <div className="space-y-1">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-cream-700 dark:text-slate-400 font-bold block">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-cream-800 dark:text-slate-300 font-bold block">
             1. Gross At Risk
           </span>
           <div className="text-xl font-extrabold font-mono text-risk dark:text-risk-light">
             {formatINR(atRisk)}
           </div>
-          <p className="text-[11px] text-cream-600 dark:text-slate-400">
+          <p className="text-[11px] text-cream-700 dark:text-slate-300">
             Across {summary?.activeCasesCount || 0} open incidents
           </p>
         </div>
@@ -80,7 +80,7 @@ export const MeasuredRecoverySection: React.FC<MeasuredRecoverySectionProps> = (
           <div className="text-xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
             {formatINR(recovered)}
           </div>
-          <p className="text-[11px] text-cream-600 dark:text-slate-400">
+          <p className="text-[11px] text-cream-700 dark:text-slate-300">
             {recoveredCount} captured settlements
           </p>
         </div>
@@ -93,7 +93,7 @@ export const MeasuredRecoverySection: React.FC<MeasuredRecoverySectionProps> = (
           <div className="text-xl font-extrabold font-mono text-amber-700 dark:text-amber-400">
             −{formatINR(incentiveSpent)}
           </div>
-          <p className="text-[11px] text-cream-600 dark:text-slate-400">
+          <p className="text-[11px] text-cream-700 dark:text-slate-300">
             Capped discount discounts applied
           </p>
         </div>
@@ -116,13 +116,13 @@ export const MeasuredRecoverySection: React.FC<MeasuredRecoverySectionProps> = (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
         <div className="p-4 rounded-2xl bg-cream-100 dark:bg-surface-800 border border-cream-300/80 dark:border-surface-700 flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-mono uppercase text-cream-700 dark:text-slate-400 font-bold block">
+            <span className="text-[11px] font-mono uppercase text-cream-800 dark:text-slate-200 font-bold block">
               Recovery Recall (Yield)
             </span>
             <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white mt-0.5">
               {recall.toFixed(1)}%
             </div>
-            <span className="text-[10px] text-cream-600 dark:text-slate-400">
+            <span className="text-[10px] text-cream-700 dark:text-slate-300">
               Recoverable revenue successfully captured
             </span>
           </div>
@@ -133,13 +133,13 @@ export const MeasuredRecoverySection: React.FC<MeasuredRecoverySectionProps> = (
 
         <div className="p-4 rounded-2xl bg-cream-100 dark:bg-surface-800 border border-cream-300/80 dark:border-surface-700 flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-mono uppercase text-cream-700 dark:text-slate-400 font-bold block">
+            <span className="text-[11px] font-mono uppercase text-cream-800 dark:text-slate-200 font-bold block">
               Intervention Precision
             </span>
             <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white mt-0.5">
               {precision.toFixed(1)}%
             </div>
-            <span className="text-[10px] text-cream-600 dark:text-slate-400">
+            <span className="text-[10px] text-cream-700 dark:text-slate-300">
               Zero spurious retries on dead accounts
             </span>
           </div>
@@ -150,13 +150,13 @@ export const MeasuredRecoverySection: React.FC<MeasuredRecoverySectionProps> = (
 
         <div className="p-4 rounded-2xl bg-cream-100 dark:bg-surface-800 border border-cream-300/80 dark:border-surface-700 flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-mono uppercase text-cream-700 dark:text-slate-400 font-bold block">
+            <span className="text-[11px] font-mono uppercase text-cream-800 dark:text-slate-200 font-bold block">
               Correct Hold Rate
             </span>
             <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white mt-0.5">
               {correctHoldRate.toFixed(1)}%
             </div>
-            <span className="text-[10px] text-cream-600 dark:text-slate-400">
+            <span className="text-[10px] text-cream-700 dark:text-slate-300">
               Safely held without annoying customers
             </span>
           </div>

@@ -21,6 +21,11 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
     if (!isPublic) {
       await ensureAdminLoggedIn(page);
     }
+
+    // Disable CSS animations & transitions so accessibility contrast scans test settled styles
+    await page.addStyleTag({
+      content: '*, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }',
+    });
   });
 
   test('Landing page has no critical accessibility violations', async ({ page }) => {
@@ -43,6 +48,8 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
   test('Dashboard page has no critical accessibility violations', async ({ page }) => {
     await page.getByRole('button', { name: /^Dashboard$/i }).first().click();
     await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: /Revenue Recovery Command Center/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Run Recovery Batch/i })).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
@@ -59,6 +66,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
   test('Cases Workbench page has no critical accessibility violations', async ({ page }) => {
     await page.getByRole('button', { name: /^Workbench$/i }).first().click();
     await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('main', { name: 'Cases Workbench' })).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
@@ -75,6 +83,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
   test('Policy page has no critical accessibility violations', async ({ page }) => {
     await page.getByRole('button', { name: /^Policies$/i }).first().click();
     await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('main', { name: 'Policy Configuration' })).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
