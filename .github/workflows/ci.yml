@@ -24,7 +24,7 @@ jobs:
         env:
           POSTGRES_DB: reclaim_test
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -45,7 +45,7 @@ jobs:
 
     env:
       NODE_ENV: test
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reclaim_test
+      DATABASE_URL: postgresql://postgres@localhost:5432/reclaim_test
       REDIS_URL: redis://localhost:6379
       JWT_SECRET: test_jwt_secret_key_at_least_32_chars_long_123456
       JWT_REFRESH_SECRET: test_refresh_jwt_secret_at_least_32_chars_123
@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
         with:
           version: 10
 
@@ -72,7 +72,7 @@ jobs:
           cache: 'pnpm'
 
       - name: 📥 Install Dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: 🗄️ Generate Prisma Client & Migrate Schema
         run: |
@@ -96,7 +96,7 @@ jobs:
         run: pnpm --filter client test
 
       - name: 🎭 Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: 🏗️ Build Server & Client
         run: pnpm run build

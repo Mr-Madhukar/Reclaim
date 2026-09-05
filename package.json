@@ -22,7 +22,6 @@
     "test:e2e:ui": "playwright test --ui",
     "test:a11y": "playwright test e2e/accessibility.spec.ts",
     "test:all": "pnpm test && pnpm test:frontend && pnpm run test:e2e",
-    "record:video": "playwright test e2e/record-walkthrough.spec.ts",
     "eval:batch": "pnpm --filter server eval:batch",
     "lint": "eslint . && pnpm --filter server lint:tsc && pnpm --filter client lint:tsc",
     "lint:eslint": "eslint .",
@@ -41,7 +40,6 @@
     "globals": "^17.11.0",
     "typescript-eslint": "^8.67.0"
   },
-  "main": "record_pitch.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Mr-Madhukar/Reclaim.git"
