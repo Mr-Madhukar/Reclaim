@@ -24,7 +24,7 @@ test.describe('Reclaim AI — Accessibility Compliance (WCAG 2.1 AA)', () => {
 
     // Disable CSS animations & transitions so accessibility contrast scans test settled styles
     await page.addStyleTag({
-      content: '*, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }',
+      content: '*, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; animation: none !important; transition: none !important; }',
     });
   });
 
