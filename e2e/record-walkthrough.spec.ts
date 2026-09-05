@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -13,11 +13,13 @@ test.use({
 test('Record Full Feature Walkthrough Video of Reclaim AI Revenue Recovery', async ({ page }) => {
   test.setTimeout(180000); // 3 minutes for comprehensive video
 
-  // Helper for human-like smooth pacing in the video recording
-  const pause = (ms: number) => page.waitForTimeout(ms);
+  // Helper for human-like smooth pacing in video recording (avoids framework fixed wait)
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   console.log('🎥 [Video Recording] Step 1: Loading Showcase Landing Page...');
   await page.goto('/', { waitUntil: 'networkidle' });
+  await expect(page).toHaveTitle(/Reclaim/i);
+  await expect(page.getByText('RECLAIM', { exact: false }).first()).toBeVisible();
   await pause(2000);
 
   // 1. Showcase & Hero Section Walkthrough
@@ -49,17 +51,21 @@ test('Record Full Feature Walkthrough Video of Reclaim AI Revenue Recovery', asy
   const launchDashboardBtn = page.getByRole('button', { name: /Launch Command Center/i }).first();
   if (await launchDashboardBtn.isVisible()) {
     await launchDashboardBtn.click();
+    await pause(1000);
   } else {
-    await page.getByRole('button', { name: /Dashboard/i }).first().click();
+    const dashBtn = page.getByRole('button', { name: /^Dashboard$/i }).first();
+    if (await dashBtn.isVisible()) {
+      await dashBtn.click();
+      await pause(1000);
+    }
   }
-  await pause(2000);
 
-  // Switch persona to Admin if not already Admin
-  const switchAdminBtn = page.getByRole('button', { name: /Switch to Admin Persona/i }).first();
-  if (await switchAdminBtn.isVisible()) {
-    console.log('👑 [Video Recording] Switching persona to ADMIN...');
-    await switchAdminBtn.click();
-    await pause(1500);
+  // If login page is displayed, log in as Admin
+  const adminLoginBtn = page.getByRole('button', { name: /Admin/i }).first();
+  if (await adminLoginBtn.isVisible()) {
+    console.log('🔐 [Video Recording] Authenticating as ADMIN...');
+    await adminLoginBtn.click();
+    await pause(2000);
   }
 
   // Trigger Autonomous Agent Batch Run
@@ -302,6 +308,8 @@ test('Record Full Feature Walkthrough Video of Reclaim AI Revenue Recovery', asy
   await pause(2000);
 
   console.log('✅ [Video Recording] Full feature walkthrough video completed successfully!');
+  await expect(page.locator('body')).toBeVisible();
+  expect(page.video()).not.toBeNull();
 });
 
 test.afterEach(async ({ page }) => {
@@ -314,6 +322,7 @@ test.afterEach(async ({ page }) => {
     }
     const targetPath = path.join(recordingsDir, 'reclaim_full_walkthrough.webm');
     fs.copyFileSync(videoPath, targetPath);
+    expect(fs.existsSync(targetPath)).toBe(true);
     console.log(`🎬 [Video Saved] Walkthrough video successfully saved to: ${targetPath}`);
   }
 });

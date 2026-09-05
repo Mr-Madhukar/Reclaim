@@ -10,6 +10,7 @@ import { PolicyConfigView } from './components/policies/PolicyConfigView';
 import { AuditView } from './components/audit/AuditView';
 import { EvaluatorScorecard } from './components/scorecard/EvaluatorScorecard';
 import { LoginPage } from './components/auth/LoginPage';
+import { useAuth } from './hooks/useAuth';
 
 /** Map tab keys to human-readable page titles for screen reader announcements */
 const TAB_TITLES: Record<MainTab, string> = {
@@ -24,20 +25,31 @@ const TAB_TITLES: Record<MainTab, string> = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<MainTab>('landing');
+  const { user, isLoading } = useAuth();
+  const [requestedTab, setRequestedTab] = useState<MainTab>('landing');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
+  // Tab change handler enforcing authentication guard
   const handleTabChange = (tab: MainTab) => {
-    setActiveTab(tab);
+    if (!user && tab !== 'landing' && tab !== 'login') {
+      setRequestedTab('login');
+      return;
+    }
+    setRequestedTab(tab);
   };
+
+  // Compute activeTab: unauthenticated visitors are guarded to login or landing
+  const activeTab: MainTab = (!isLoading && !user && requestedTab !== 'landing')
+    ? 'login'
+    : requestedTab;
 
   // Dedicated Login / Sign Up Page view
   if (activeTab === 'login') {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center bg-transparent text-slate-100 selection:bg-brand-500 selection:text-white relative">
         <LoginPage
-          onSuccess={() => setActiveTab('overview')}
-          onBack={() => setActiveTab('landing')}
+          onSuccess={() => setRequestedTab('overview')}
+          onBack={() => setRequestedTab('landing')}
         />
       </div>
     );
@@ -58,7 +70,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={handleTabChange}
         onOpenMobileMenu={() => setMobileMenuOpen(true)}
-        onNavigateToLogin={() => setActiveTab('login')}
+        onNavigateToLogin={() => setRequestedTab('login')}
       />
 
       {/* Slide-out Mobile Navigation */}
@@ -77,12 +89,12 @@ export default function App() {
         className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full focus:outline-none"
       >
         {activeTab === 'landing' && <LandingPage onSelectTab={handleTabChange} />}
-        {activeTab === 'overview' && <DashboardOverview />}
-        {activeTab === 'cases' && <CasesView />}
-        {activeTab === 'sandbox' && <SandboxView />}
-        {activeTab === 'policies' && <PolicyConfigView />}
-        {activeTab === 'audit' && <AuditView />}
-        {activeTab === 'scorecard' && <EvaluatorScorecard />}
+        {user && activeTab === 'overview' && <DashboardOverview />}
+        {user && activeTab === 'cases' && <CasesView />}
+        {user && activeTab === 'sandbox' && <SandboxView />}
+        {user && activeTab === 'policies' && <PolicyConfigView />}
+        {user && activeTab === 'audit' && <AuditView />}
+        {user && activeTab === 'scorecard' && <EvaluatorScorecard />}
       </main>
 
       {/* Screen reader live region for page navigation announcements */}
@@ -95,4 +107,3 @@ export default function App() {
     </div>
   );
 }
-

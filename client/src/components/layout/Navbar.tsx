@@ -11,6 +11,7 @@ import {
   History,
   FlaskConical,
   Award,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRole } from '../../types';
@@ -44,25 +45,57 @@ const NAV_TABS: NavTabItem[] = [
 const TAB_ACTIVE_CLASS = 'bg-brand-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.4)]';
 const TAB_INACTIVE_CLASS = 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-cream-300/50 dark:hover:bg-white/[0.05]';
 
+const ROLE_CONFIG: Record<
+  UserRole,
+  { label: string; desc: string; badgeClass: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  ADMIN: {
+    label: 'Admin',
+    desc: 'Full write & batch trigger access',
+    badgeClass: 'bg-brand-500/10 border-brand-500/30 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20',
+    icon: ShieldCheck,
+  },
+  REVIEWER: {
+    label: 'Reviewer',
+    desc: 'Case resolution & interventions',
+    badgeClass: 'bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20',
+    icon: UserCheck,
+  },
+  OPS_VIEWER: {
+    label: 'Ops Viewer',
+    desc: 'Read-only financial audit mode',
+    badgeClass: 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20',
+    icon: Award,
+  },
+};
+
+const ROLES_LIST: { role: UserRole; label: string; desc: string }[] = [
+  { role: 'ADMIN', label: 'Admin', desc: 'Full write & batch trigger access' },
+  { role: 'REVIEWER', label: 'Reviewer', desc: 'Case resolution & interventions' },
+  { role: 'OPS_VIEWER', label: 'Ops Viewer', desc: 'Read-only financial audit mode' },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   onOpenMobileMenu,
   onNavigateToLogin,
 }) => {
-  const { user, switchRole } = useAuth();
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const { user, switchRole, logout } = useAuth();
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
-  const currentRole: UserRole = user?.role || 'ADMIN';
-
+  // Unauthorised users only see the Showcase tab; logged in users see their role-permitted tabs
   const visibleNavTabs = NAV_TABS.filter((tab) => {
+    if (!user) {
+      return tab.id === 'landing';
+    }
     if (!tab.allowedRoles) return true;
-    return tab.allowedRoles.includes(currentRole);
+    return tab.allowedRoles.includes(user.role);
   });
 
   const handleSwitchRole = (newRole: UserRole) => {
     switchRole(newRole);
-    setRoleDropdownOpen(false);
+    setProfileDropdownOpen(false);
 
     // Auto-switch to dashboard if the current activeTab is not allowed in the new role
     const permittedTabs = NAV_TABS.filter(
@@ -74,11 +107,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const roles: { role: UserRole; label: string; desc: string }[] = [
-    { role: 'ADMIN', label: 'Admin', desc: 'Full write & batch trigger access' },
-    { role: 'REVIEWER', label: 'Reviewer', desc: 'Case resolution & interventions' },
-    { role: 'OPS_VIEWER', label: 'Ops Viewer', desc: 'Read-only financial audit mode' },
-  ];
+  const handleLogout = async () => {
+    setProfileDropdownOpen(false);
+    await logout();
+    onSelectTab('landing');
+  };
+
+  const ActiveRoleIcon = user ? ROLE_CONFIG[user.role]?.icon || UserCheck : UserCheck;
 
   return (
     <header className="sticky top-0 z-40 w-full bg-cream-100/80 dark:bg-[#020202]/80 backdrop-blur-xl border-b border-cream-300/80 dark:border-white/[0.08] transition-colors">
@@ -103,14 +138,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Center: Desktop Navigation Tabs */}
+        {/* Center: Desktop Navigation Tabs (Filtered dynamically by auth & role) */}
         <nav aria-label="Main navigation" className="hidden xl:flex items-center space-x-1 bg-cream-200/80 dark:bg-white/[0.03] p-1 rounded-full border border-cream-300/80 dark:border-white/[0.08] backdrop-blur-md">
           {visibleNavTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => onSelectTab(id)}
               aria-current={activeTab === id ? 'page' : undefined}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
                 activeTab === id ? TAB_ACTIVE_CLASS : TAB_INACTIVE_CLASS
               }`}
             >
@@ -120,89 +155,119 @@ export const Navbar: React.FC<NavbarProps> = ({
           ))}
         </nav>
 
-        {/* Right: Policy Live Pulse + 1-Click Role Switcher + Mobile Trigger */}
+        {/* Right: Guardrails + Dynamic Auth / Role Pill + Mobile Trigger */}
         <div className="flex items-center space-x-2.5">
-          {/* Policy Guardrail Live Pulse */}
-          <div className="hidden lg:flex items-center space-x-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-            <span className="font-medium text-[11px]">Guardrails Active</span>
-          </div>
+          {/* Policy Guardrail Live Pulse (visible when logged in) */}
+          {user && (
+            <div className="hidden lg:flex items-center space-x-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span className="font-medium text-[11px]">Guardrails Active</span>
+            </div>
+          )}
 
-          {/* 1-Click RBAC Role Switcher */}
-          <div className="relative">
+          {/* DYNAMIC AUTH / ROLE SECTION */}
+          {!user ? (
+            /* Unauthorised state: Prominent Login / Sign Up Button */
             <button
-              onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-              aria-expanded={roleDropdownOpen}
-              aria-haspopup="true"
-              aria-label={`Switch role, current role: ${user?.role || 'ADMIN'}`}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-xs font-medium text-cream-800 dark:text-slate-200 hover:border-brand-500 transition-colors"
+              type="button"
+              onClick={onNavigateToLogin}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer"
             >
-              <UserCheck className="h-3.5 w-3.5 text-brand-500" />
-              <span className="hidden sm:inline font-mono font-semibold">
-                {user?.role || 'ADMIN'}
-              </span>
-              <ChevronDown className="h-3 w-3 text-cream-600 dark:text-slate-400" />
+              <span>Login / Sign Up</span>
             </button>
-
-            {roleDropdownOpen && (
-              <div
-                className="absolute right-0 mt-2 w-56 rounded-2xl glass-panel shadow-xl p-2 z-50 animate-slide-down border border-cream-300 dark:border-surface-700"
-                onMouseLeave={() => setRoleDropdownOpen(false)}
+          ) : (
+            /* Authenticated state: Role Badge Profile Pill & Dropdown */
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                aria-expanded={profileDropdownOpen}
+                aria-haspopup="true"
+                aria-label={`User profile for ${user.name}, role ${user.role}`}
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
+                  ROLE_CONFIG[user.role]?.badgeClass || 'bg-cream-200 dark:bg-surface-850'
+                }`}
               >
-                <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-cream-600 dark:text-slate-400 border-b border-cream-200 dark:border-surface-750">
-                  Switch Demo Persona (RBAC)
-                </div>
-                <div className="py-1 space-y-1">
-                  {roles.map(({ role, label, desc }) => (
-                    <button
-                      key={role}
-                      onClick={() => handleSwitchRole(role)}
-                      className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex flex-col transition-colors ${
-                        user?.role === role
-                          ? 'bg-brand-500/15 text-brand-600 dark:text-brand-400 font-semibold border border-brand-500/30'
-                          : 'text-cream-800 dark:text-slate-200 hover:bg-cream-300/50 dark:hover:bg-surface-800'
-                      }`}
-                    >
-                      <span className="flex items-center justify-between">
-                        <span>{label}</span>
-                        {user?.role === role && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
-                        )}
-                      </span>
-                      <span className="text-[10px] text-cream-600 dark:text-slate-400 font-normal">
-                        {desc}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div className="pt-1 border-t border-cream-200 dark:border-surface-750">
-                  <button
-                    onClick={() => {
-                      setRoleDropdownOpen(false);
-                      onNavigateToLogin();
-                    }}
-                    className="w-full text-center py-1.5 text-[11px] text-brand-600 dark:text-brand-400 hover:underline font-semibold"
-                  >
-                    Go to Login / Sign Up Page →
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+                <ActiveRoleIcon className="h-3.5 w-3.5 shrink-0" />
+                <span className="font-mono font-bold uppercase tracking-wider text-[11px]">
+                  {user.role}
+                </span>
+                <span className="hidden sm:inline font-sans text-slate-700 dark:text-slate-300 border-l border-cream-300 dark:border-white/10 pl-2 text-xs">
+                  {user.name}
+                </span>
+                <ChevronDown className="h-3 w-3 text-slate-500 dark:text-slate-400 shrink-0" />
+              </button>
 
-          {/* Direct Sign In / Sign Up Button */}
-          <button
-            type="button"
-            onClick={onNavigateToLogin}
-            className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/30 text-xs font-bold transition-all"
-          >
-            <span>Login / Sign Up</span>
-          </button>
+              {profileDropdownOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-64 rounded-2xl glass-panel shadow-2xl p-2.5 z-50 animate-slide-down border border-cream-300 dark:border-surface-700"
+                  onMouseLeave={() => setProfileDropdownOpen(false)}
+                >
+                  {/* User Profile Header */}
+                  <div className="px-2.5 py-2 border-b border-cream-200 dark:border-surface-750">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {user.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
+                      {user.email}
+                    </p>
+                    <div className="mt-1.5 inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
+                      <span>ROLE:</span>
+                      <span>{user.role}</span>
+                    </div>
+                  </div>
+
+                  {/* Switch Persona (RBAC) section */}
+                  <div className="pt-2 pb-1">
+                    <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                      Switch Persona (RBAC)
+                    </div>
+                    <div className="space-y-1">
+                      {ROLES_LIST.map(({ role, label, desc }) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => handleSwitchRole(role)}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex flex-col transition-colors cursor-pointer ${
+                            user.role === role
+                              ? 'bg-brand-500/15 text-brand-600 dark:text-brand-400 font-semibold border border-brand-500/30'
+                              : 'text-slate-800 dark:text-slate-200 hover:bg-cream-200/60 dark:hover:bg-surface-800'
+                          }`}
+                        >
+                          <span className="flex items-center justify-between">
+                            <span>{label}</span>
+                            {user.role === role && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                            )}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-normal">
+                            {desc}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sign Out Action */}
+                  <div className="pt-1.5 border-t border-cream-200 dark:border-surface-750">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-2 px-2.5 py-2 rounded-xl text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors font-semibold cursor-pointer"
+                    >
+                      <LogOut className="h-3.5 w-3.5 shrink-0" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Mobile Menu Trigger */}
           <button
             onClick={onOpenMobileMenu}
-            className="xl:hidden p-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-cream-800 dark:text-slate-200"
+            className="xl:hidden p-2 rounded-xl bg-cream-200 dark:bg-surface-850 border border-cream-300 dark:border-surface-750 text-cream-800 dark:text-slate-200 cursor-pointer"
             aria-label="Open mobile menu"
           >
             <Menu className="h-5 w-5" />

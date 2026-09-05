@@ -9,6 +9,8 @@ import {
   FlaskConical,
   Award,
   ShieldCheck,
+  LogOut,
+  UserCheck,
 } from 'lucide-react';
 import { MainTab } from './Navbar';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,7 +29,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   activeTab,
   onSelectTab,
 }) => {
-  const { user, switchRole } = useAuth();
+  const { user, switchRole, logout } = useAuth();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,8 +43,6 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-
-  const currentRole: UserRole = user?.role || 'ADMIN';
 
   const roles: { role: UserRole; label: string }[] = [
     { role: 'ADMIN', label: 'Admin' },
@@ -60,9 +60,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     { tab: 'scorecard', label: 'Scorecard', icon: Award, allowedRoles: ['ADMIN', 'OPS_VIEWER'] },
   ];
 
+  // Unauthorised users only see Showcase; logged-in users see permitted tabs
   const visibleNavItems = navItems.filter((item) => {
+    if (!user) {
+      return item.tab === 'landing';
+    }
     if (!item.allowedRoles) return true;
-    return item.allowedRoles.includes(currentRole);
+    return item.allowedRoles.includes(user.role);
   });
 
   const handleSwitchRole = (newRole: UserRole) => {
@@ -75,6 +79,12 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     if (!permittedTabs.includes(activeTab)) {
       onSelectTab('overview');
     }
+  };
+
+  const handleLogout = async () => {
+    onClose();
+    await logout();
+    onSelectTab('landing');
   };
 
   return (
@@ -111,7 +121,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300"
+              className="p-1.5 rounded-lg bg-cream-200 dark:bg-surface-800 text-cream-700 dark:text-slate-300 cursor-pointer"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -127,7 +137,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                   onSelectTab(tab);
                   onClose();
                 }}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === tab
                     ? 'bg-brand-500 text-white shadow-md'
                     : 'text-cream-800 dark:text-slate-300 hover:bg-cream-200 dark:hover:bg-surface-800'
@@ -138,48 +148,87 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
               </button>
             ))}
 
-            <button
-              type="button"
-              onClick={() => {
-                onSelectTab('login');
-                onClose();
-              }}
-              className={`w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all mt-3 ${
-                activeTab === 'login'
-                  ? 'bg-brand-500 text-white shadow-md'
-                  : 'text-brand-600 dark:text-brand-400 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30'
-              }`}
-            >
-              <span>Login / Sign Up Page</span>
-            </button>
+            {/* Auth CTA or User profile card */}
+            {!user ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectTab('login');
+                  onClose();
+                }}
+                className={`w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all mt-3 cursor-pointer ${
+                  activeTab === 'login'
+                    ? 'bg-brand-500 text-white shadow-md'
+                    : 'text-brand-600 dark:text-brand-400 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30'
+                }`}
+              >
+                <span>Login / Sign Up Page</span>
+              </button>
+            ) : (
+              <div className="p-3 rounded-2xl bg-cream-200/80 dark:bg-surface-850/80 border border-cream-300 dark:border-surface-750 mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {user.name}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/30">
+                    {user.role}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
+                  {user.email}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center space-x-1.5 py-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Bottom Persona Switcher */}
+        {/* Bottom Persona Switcher or Unauthenticated Prompt */}
         <div className="pt-4 border-t border-cream-300 dark:border-surface-750">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-cream-600 dark:text-slate-400 mb-2">
-            Active RBAC Persona
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {roles.map(({ role, label }) => (
-              <button
-                key={role}
-                onClick={() => handleSwitchRole(role)}
-                className={`py-1.5 px-2 rounded-lg text-xs font-mono font-medium transition-all ${
-                  user?.role === role
-                    ? 'bg-brand-500 text-white'
-                    : 'bg-cream-200 dark:bg-surface-800 text-cream-800 dark:text-slate-300 border border-cream-300 dark:border-surface-750'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {user ? (
+            <>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-cream-600 dark:text-slate-400 mb-2">
+                Active RBAC Persona
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {roles.map(({ role, label }) => (
+                  <button
+                    key={role}
+                    onClick={() => handleSwitchRole(role)}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                      user.role === role
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-cream-200 dark:bg-surface-800 text-cream-800 dark:text-slate-300 border border-cream-300 dark:border-surface-750'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-          <div className="mt-4 flex items-center justify-center space-x-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-            <ShieldCheck className="h-4 w-4" />
-            <span>Policy Engine Guardrails On</span>
-          </div>
+              <div className="mt-4 flex items-center justify-center space-x-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="h-4 w-4" />
+                <span>Policy Engine Guardrails On</span>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2 text-center">
+              <div className="flex items-center justify-center space-x-1.5 text-xs text-brand-600 dark:text-brand-400 font-medium">
+                <UserCheck className="h-4 w-4" />
+                <span>Protected Enterprise Access</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                Login with Admin, Reviewer, or Ops credentials to view recovery pipelines.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </dialog>
