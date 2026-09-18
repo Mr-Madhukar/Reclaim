@@ -30,15 +30,15 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20.19.43",
     "concurrently": "^9.1.2",
-    "eslint": "^10.9.0",
+    "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.4",
+    "eslint-plugin-react-refresh": "^0.5.7",
     "eslint-plugin-sonarjs": "^4.2.0",
-    "globals": "^17.11.0",
-    "typescript-eslint": "^8.67.0"
+    "globals": "^17.12.0",
+    "typescript-eslint": "^8.70.0"
   },
   "repository": {
     "type": "git",
@@ -52,7 +52,7 @@
   },
   "homepage": "https://github.com/Mr-Madhukar/Reclaim#readme",
   "dependencies": {
-    "playwright": "^1.62.1"
+    "playwright": "^1.63.0"
   },
   "pnpm": {
     "overrides": {
